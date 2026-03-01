@@ -1,0 +1,69 @@
+--- openvpn3-original/openvpn3-core/openvpn/crypto/cryptoalgs.hpp	2026-01-22 19:32:13.000000000 +0100
++++ openvpn3-src/openvpn3-core/openvpn/crypto/cryptoalgs.hpp	2026-03-23 00:02:31.716751228 +0100
+@@ -192,18 +192,18 @@
+ 
+ inline std::array<Alg, Type::SIZE> algs = {
+     // clang-format off
+-    Alg{"none",               F_CIPHER|F_DIGEST|CBC_HMAC,   0,  0,  0, 0 },
+-    Alg{"AES-128-CBC",        F_CIPHER|CBC_HMAC,           16, 16, 16, 0 },
+-    Alg{"AES-192-CBC",        F_CIPHER|CBC_HMAC,           24, 16, 16, 0 },
+-    Alg{"AES-256-CBC",        F_CIPHER|CBC_HMAC,           32, 16, 16, 0 },
+-    Alg{"DES-CBC",            F_CIPHER|CBC_HMAC,            8,  8,  8, 0 },
+-    Alg{"DES-EDE3-CBC",       F_CIPHER|CBC_HMAC,           24,  8,  8, 0 },
+-    Alg{"BF-CBC",             F_CIPHER|CBC_HMAC,           16,  8,  8, 0 },
+-    Alg{"AES-256-CTR",        F_CIPHER,                    32, 16, 16, 0 },
+-    Alg{"AES-128-GCM",        F_CIPHER|AEAD,               16, 12, 16, gcm_limit },
+-    Alg{"AES-192-GCM",        F_CIPHER|AEAD,               24, 12, 16, gcm_limit },
+-    Alg{"AES-256-GCM",        F_CIPHER|AEAD,               32, 12, 16, gcm_limit },
+-    Alg{"CHACHA20-POLY1305",  F_CIPHER|AEAD,               32, 12, 16, 0 },
++    Alg{"none",               (unsigned int)F_CIPHER|(unsigned int)F_DIGEST|(unsigned int)CBC_HMAC,   0,  0,  0, 0 },
++    Alg{"AES-128-CBC",        (unsigned int)F_CIPHER|(unsigned int)CBC_HMAC,           16, 16, 16, 0 },
++    Alg{"AES-192-CBC",        (unsigned int)F_CIPHER|(unsigned int)CBC_HMAC,           24, 16, 16, 0 },
++    Alg{"AES-256-CBC",        (unsigned int)F_CIPHER|(unsigned int)CBC_HMAC,           32, 16, 16, 0 },
++    Alg{"DES-CBC",            (unsigned int)F_CIPHER|(unsigned int)CBC_HMAC,            8,  8,  8, 0 },
++    Alg{"DES-EDE3-CBC",       (unsigned int)F_CIPHER|(unsigned int)CBC_HMAC,           24,  8,  8, 0 },
++    Alg{"BF-CBC",             (unsigned int)F_CIPHER|(unsigned int)CBC_HMAC,           16,  8,  8, 0 },
++    Alg{"AES-256-CTR",        (unsigned int)F_CIPHER,                    32, 16, 16, 0 },
++    Alg{"AES-128-GCM",        (unsigned int)F_CIPHER|(unsigned int)AEAD,               16, 12, 16, gcm_limit },
++    Alg{"AES-192-GCM",        (unsigned int)F_CIPHER|(unsigned int)AEAD,               24, 12, 16, gcm_limit },
++    Alg{"AES-256-GCM",        (unsigned int)F_CIPHER|(unsigned int)AEAD,               32, 12, 16, gcm_limit },
++    Alg{"CHACHA20-POLY1305",  (unsigned int)F_CIPHER|(unsigned int)AEAD,               32, 12, 16, 0 },
+     Alg{"MD4",                F_DIGEST,                    16,  0,  0, 0 },
+     Alg{"MD5",                F_DIGEST,                    16,  0,  0, 0 },
+     Alg{"SHA1",               F_DIGEST,                    20,  0,  0, 0 },
+@@ -319,7 +319,7 @@
+ inline Type dc_cbc_cipher(const Type type)
+ {
+     const Alg &alg = get(type);
+-    if (!(alg.flags() & CBC_HMAC))
++    if (!((unsigned int)alg.flags() & (unsigned int)CBC_HMAC))
+         OPENVPN_THROW(crypto_alg, alg.name() << ": bad cipher for data channel use");
+     return type;
+ }
+@@ -327,7 +327,7 @@
+ inline Type dc_cbc_hash(const Type type)
+ {
+     const Alg &alg = get(type);
+-    if (!(alg.flags() & F_DIGEST))
++    if (!((unsigned int)alg.flags() & (unsigned int)F_DIGEST))
+         OPENVPN_THROW(crypto_alg, alg.name() << ": bad digest for data channel use");
+     return type;
+ }
+@@ -369,14 +369,14 @@
+ 		  return false;
+ 
+ 		/* 64 bit block ciphers vulnerable to SWEET32 */
+-		if (alg.flags() & F_CIPHER && !legacy && alg.block_size() <= 8)
++		if ((unsigned int)alg.flags() & (unsigned int)F_CIPHER && !legacy && alg.block_size() <= 8)
+ 		  return false;
+ 
+ 		/* This excludes MD4 */
+-		if (alg.flags() & F_DIGEST && !legacy && alg.size() < 20)
++		if ((unsigned int)alg.flags() & (unsigned int)F_DIGEST && !legacy && alg.size() < 20)
+ 		  return false;
+ 
+-		if ((alg.flags() & F_CIPHER && alg.mode() != AEAD && type != NONE)
++		if (((unsigned int)alg.flags() & (unsigned int)F_CIPHER && alg.mode() != AEAD && type != NONE)
+ 			&& !CRYPTO_API::CipherContext::is_supported(libctx, type))
+ 		  return false;
+ 

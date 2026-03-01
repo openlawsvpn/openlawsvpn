@@ -1,0 +1,40 @@
+--- openvpn3-original/openvpn3-core/client/ovpncli.cpp	2026-01-22 19:32:13.000000000 +0100
++++ openvpn3-src/openvpn3-core/client/ovpncli.cpp	2026-03-23 00:02:16.707691502 +0100
+@@ -113,17 +113,17 @@
+ 
+     static size_t combined_n()
+     {
+-        return N_STATS + Error::N_ERRORS;
++        return (size_t)N_STATS + (size_t)Error::N_ERRORS;
+     }
+ 
+     static std::string combined_name(const size_t index)
+     {
+-        if (index < N_STATS + Error::N_ERRORS)
++        if (index < (size_t)N_STATS + (size_t)Error::N_ERRORS)
+         {
+-            if (index < N_STATS)
++            if (index < (size_t)N_STATS)
+                 return stat_name(index);
+             else
+-                return Error::name(index - N_STATS);
++                return Error::name(index - (size_t)N_STATS);
+         }
+         else
+             return "";
+@@ -131,12 +131,12 @@
+ 
+     count_t combined_value(const size_t index) const
+     {
+-        if (index < N_STATS + Error::N_ERRORS)
++        if (index < (size_t)N_STATS + (size_t)Error::N_ERRORS)
+         {
+-            if (index < N_STATS)
++            if (index < (size_t)N_STATS)
+                 return get_stat(index);
+             else
+-                return errors[index - N_STATS];
++                return errors[index - (size_t)N_STATS];
+         }
+         else
+             return 0;

@@ -1,0 +1,55 @@
+# External dependencies
+external/
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+cmake-build-*/
+build/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+openlaws-vpn
+
+# CMake/Ninja artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+cmake_install.config
+install_manifest.txt
+Makefile
+!linux/Makefile
+!Makefile
+compile_commands.json
+.ninja_deps
+.ninja_log
+rules.ninja
+ninja.build
+build.ninja
+
+# RPM build
+rpmbuild/
+
+# ccache
+.ccache/
+openvpn3-src/
+*.rpm
+*.tar.gz
+*.tar.xz
+*.tar.xz.asc
+*.patch
+*.gpg
+*.spec
+!openlawsvpn.spec
+!openvpn3.spec
+
+# Stakpak session files
+.stakpak/session*

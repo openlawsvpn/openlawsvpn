@@ -1,0 +1,98 @@
+.PHONY: all linux clean flutter-rpm openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock
+
+SPEC_FILE := linux/openlawsvpn.spec
+PROJECTNAME := openlawsvpn
+PROJECTTMPDIR := /tmp/$(PROJECTNAME)
+RPM_VERSION := $(shell rpmspec --srpm -q --qf "%{Version}-%{Release}" $(SPEC_FILE))
+FEDORA_VERSION := $(shell rpm -E %fedora)
+
+BUILD_DIR ?= $(shell pwd)/build/linux
+GUI_BUILD_DIR ?= $(shell pwd)/build/gui
+CMAKE_INSTALL_PREFIX ?= $(shell pwd)/build
+
+OPENVPN3_RPM_SPEC := docs/openvpn3.spec
+OPENVPN3_RPM_VERSION := $(shell rpmspec --srpm -q --qf "%{Version}-%{Release}" ${OPENVPN3_RPM_SPEC})
+
+VENDOR_SRC := openvpn3-src
+OPENVPN3_VERSION := 27
+OPENVPN3_TAR := openvpn3-linux-$(OPENVPN3_VERSION).tar.xz
+OPENVPN3_URL := https://swupdate.openvpn.net/community/releases/$(OPENVPN3_TAR)
+
+# Detect fast linker (mold is fastest, then lld)
+LINKER := $(shell which mold 2>/dev/null || which lld 2>/dev/null)
+# Detect compiler cache
+CCACHE_BIN := $(shell which ccache 2>/dev/null)
+# Use project-local ccache directory to avoid global cache influence
+CCACHE_DIR := $(shell pwd)/.ccache
+export CCACHE_DIR
+
+FLUTTER_BIN ?= flutter
+
+all: linux gui
+
+$(OPENVPN3_TAR):
+	curl -L -o $(OPENVPN3_TAR) $(OPENVPN3_URL)
+
+$(VENDOR_SRC): $(OPENVPN3_TAR)
+	mkdir -p $(VENDOR_SRC)
+	tar xf $(OPENVPN3_TAR) -C $(VENDOR_SRC) --strip-components=1
+
+linux: $(VENDOR_SRC)
+	mkdir -p $(BUILD_DIR)
+	cmake -S linux -B $(BUILD_DIR) \
+		-G Ninja \
+		$(if $(CCACHE_BIN),-DCMAKE_CXX_COMPILER_LAUNCHER=$(CCACHE_BIN)) \
+		$(if $(LINKER),-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=$(notdir $(LINKER))") \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_PREFIX) \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build $(BUILD_DIR) --target openlawsvpn-cli openlawsvpn
+	cmake --install $(BUILD_DIR)
+	@echo "Binary path: $(CMAKE_INSTALL_PREFIX)/bin/openlawsvpn-cli"
+	@echo "Library path: $(CMAKE_INSTALL_PREFIX)/lib/libopenlawsvpn.so"
+
+gui: linux
+	cd gui && $(FLUTTER_BIN) build linux --no-pub || true
+	mkdir -p $(GUI_BUILD_DIR)/lib
+	cp $(CMAKE_INSTALL_PREFIX)/lib/libopenlawsvpn.so $(GUI_BUILD_DIR)/lib/
+	@if [ -d gui/build/linux/x64/release/bundle ]; then \
+		cp -r gui/build/linux/x64/release/bundle/* $(GUI_BUILD_DIR)/; \
+		echo "GUI bundle copied to $(GUI_BUILD_DIR)"; \
+	fi
+
+clean:
+	rm -rf build rpmbuild $(VENDOR_SRC) cmake-build-debug .ccache rpm-results
+	rm -rf $(PROJECTTMPDIR)
+	rm -rf gui/build  gui/.dart_tool gui/linux/flutter/ephemeral gui/.flutter-plugins-dependencies
+
+linux-rpm:
+	# Use rpkg to handle the git_dir_pack macro
+	rpkg build --spec $(SPEC_FILE) --outdir rpmbuild \
+		--define "flutter_bin $(FLUTTER_BIN)"
+	@echo "RPMs are available in rpmbuild/RPMS/"
+	@find rpmbuild/RPMS -name "*.rpm"
+
+linux-srpm:
+	mkdir -p $(PROJECTTMPDIR)
+	# Get external sources defined in spec
+	spectool --get-files --directory $(PROJECTTMPDIR) $(SPEC_FILE)
+	# Create SRPM using rpkg to handle macros
+	rpkg srpm --spec $(SPEC_FILE) --outdir $(PROJECTTMPDIR)
+
+linux-rpm-mock: linux-srpm
+	mock --no-clean -r fedora-$(FEDORA_VERSION)-x86_64 \
+		$(PROJECTTMPDIR)/$(PROJECTNAME)-$(RPM_VERSION).src.rpm
+
+flutter-rpm:
+	rpmbuild --undefine=_disable_source_fetch -ba docs/flutter.spec
+	@echo "Flutter RPM is available in ~/rpmbuild/RPMS/"
+	@find ~/rpmbuild/RPMS -name "flutter-*.rpm"
+
+openvpn3-rpm:
+	mkdir -p $(PROJECTTMPDIR)
+	spectool --get-files --directory $(PROJECTTMPDIR) docs/openvpn3.spec
+	rpkg srpm --outdir $(PROJECTTMPDIR) --spec docs/openvpn3.spec
+	mock --no-clean -r fedora-$(FEDORA_VERSION)-x86_64 \
+        --addrepo=https://download.copr.fedorainfracloud.org/results/vorona/openlawsvpn/fedora-$(FEDORA_VERSION)-x86_64 \
+		$(PROJECTTMPDIR)/openvpn3-$(OPENVPN3_RPM_VERSION).src.rpm
+	@find ~/rpmbuild/RPMS /var/lib/mock/fedora-$(FEDORA_VERSION)-x86_64/result -name "openvpn3-*.rpm"

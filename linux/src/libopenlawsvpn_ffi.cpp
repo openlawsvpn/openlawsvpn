@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2024 openlawsvpn contributors
+// See LICENSE and LICENSE_USAGE_EXCEPTION for terms.
 #include "libopenlawsvpn.h"
 #include <cstring>
 #include <cstdlib>
