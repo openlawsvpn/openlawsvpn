@@ -32,8 +32,14 @@ BuildRequires:  libcanberra-devel
 A specialized OpenVPN 3 client for Linux that handles SAML authentication 
 and establishes tunnels via D-Bus or standalone mode.
 
+# openlawsvpn (the core and CLI) should not have GUI dependencies.
+# The GUI package is optional and separated.
+
 %package cli
 Summary:        Command line interface for openlawsvpn
+# Ensure it only requires what's needed for the CLI
+# NotRequires:       openvpn3-linux
+# NotRequires:       xdg-utils
 
 %description cli
 Command line interface and core library for openlawsvpn.

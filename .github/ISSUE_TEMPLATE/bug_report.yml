@@ -1,0 +1,61 @@
+name: Bug report
+description: Create a report to help us improve
+labels: [bug]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us what you expected to happen.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Operating System / Distribution
+      options:
+        - RHEL 9/10
+        - Fedora
+        - AlmaLinux/Rocky Linux
+        - Other (please specify in 'What happened?')
+    validations:
+      required: true
+  - type: dropdown
+    id: idp
+    attributes:
+      label: Identity Provider (IdP)
+      options:
+        - AWS IAM Identity Center
+        - Okta
+        - Google Workspace
+        - Microsoft Entra ID (Azure AD)
+        - Other (please specify in 'What happened?')
+    validations:
+      required: true
+  - type: input
+    id: ovpn-version
+    attributes:
+      label: .ovpn Version/Source
+      description: Which version or tool generated your .ovpn profile?
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Please paste relevant logs from `openlawsvpn-cli` or the GUI.
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

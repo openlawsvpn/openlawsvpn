@@ -54,6 +54,14 @@ Connect using the command-line tool:
 - `docs/`: Technical specifications and packaging files.
 - `PLAN.md`: Detailed implementation status and architecture overview.
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTORS.md](CONTRIBUTORS.md) for details on our Contributor License Agreement (CLA) and how to get started.
+
+## Security
+
+If you discover a security vulnerability, please see our [Security Policy](SECURITY.md) for responsible disclosure instructions.
+
 ## License
 
 openlawsvpn is licensed under the **GNU Lesser General Public License v2.1

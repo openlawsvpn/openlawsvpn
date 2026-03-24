@@ -1,0 +1,55 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ qa ]
+  pull_request:
+    branches: [ qa ]
+
+jobs:
+  build-linux:
+    name: Build CLI (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build libssl-dev liblz4-dev libglib2.0-dev libdbus-1-dev
+    - name: Build CLI
+      run: |
+        mkdir -p build-cli
+        cd build-cli
+        cmake ../linux -DOPENVPN_DEFAULT_MODE=DIRECT -G Ninja
+        ninja openlawsvpn-cli
+
+  rpm-check:
+    name: RPM Spec Check
+    runs-on: ubuntu-latest
+    container: fedora:40
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build tools
+      run: |
+        dnf install -y rpm-build rpmlint cmake gcc-c++ openssl-devel lz4-devel asio-devel glib2-devel chrpath
+    - name: RPM Lint
+      run: |
+        rpmlint linux/openlawsvpn.spec
+
+  license-check:
+    name: License Header Check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Check for SPDX headers
+      run: |
+        # Check that C++, C, Python, Shell and CMake files have the header
+        # We allow some exceptions for small files if needed, but here we enforce it.
+        MISSING=$(grep -rL "SPDX-License-Identifier" linux/ pkg/ scripts/ \
+            --include="*.cpp" --include="*.hpp" --include="*.h" \
+            --include="*.py" --include="*.sh" --include="*.c")
+        if [ -n "$MISSING" ]; then
+          echo "The following files are missing SPDX-License-Identifier headers:"
+          echo "$MISSING"
+          exit 1
+        fi
