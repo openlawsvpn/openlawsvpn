@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>openlawsvpn — AWS Client VPN without the proprietary client</title>
+  <link rel="canonical" href="https://openlawsvpn.com">
+  <meta name="description" content="Native SAML/SSO for Linux. Works headless. Free forever.">
+  <meta property="og:title" content="openlawsvpn — AWS Client VPN without the proprietary client">
+  <meta property="og:description" content="Native SAML/SSO for Linux. Works headless. Free forever.">
+  <meta property="og:url" content="https://openlawsvpn.com">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23f78166'>|</text></svg>">
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --accent:   #f78166;
+      --green:    #3fb950;
+      --blue:     #58a6ff;
+      --code-bg:  #1f2428;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Wordmark */
+    .wordmark {
+      font-size: 44px;
+      letter-spacing: -1px;
+      font-family: system-ui, sans-serif;
+      line-height: 1;
+    }
+    .wm-open { color: var(--text); }
+    .wm-pipe { color: var(--accent); font-weight: 300; }
+    .wm-aws  { color: var(--muted); }
+    .wm-vpn  { color: var(--text); }
+
+    /* Status badge pulse */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    .dot {
+      color: var(--green);
+      animation: pulse 2s ease-in-out infinite;
+      display: inline-block;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 80px 0 72px;
+    }
+
+    .hero-tagline {
+      font-size: 20px;
+      color: var(--muted);
+      margin-top: 20px;
+      max-width: 600px;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--muted);
+      margin-top: 8px;
+      max-width: 580px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 28px;
+      padding: 6px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 36px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 15px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* Install section */
+    .install {
+      padding: 56px 0 72px;
+      border-top: 1px solid var(--border);
+    }
+
+    .install h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+
+    /* CSS tabs — no JS */
+    .tabs input[type="radio"] { display: none; }
+
+    .tab-labels {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-labels label {
+      padding: 8px 18px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    #tab-fedora:checked ~ .tab-labels label[for="tab-fedora"],
+    #tab-source:checked ~ .tab-labels label[for="tab-source"] {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-panel { display: none; }
+
+    #tab-fedora:checked ~ .tab-panels #panel-fedora,
+    #tab-source:checked ~ .tab-panels #panel-source {
+      display: block;
+    }
+
+    .tab-panel pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      padding: 20px;
+      margin: 0;
+      overflow-x: auto;
+    }
+
+    .tab-panel code {
+      font-family: ui-monospace, monospace;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    /* Sub-tabs within a panel (root vs rootless) */
+    .install-modes {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+    }
+
+    .install-mode-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .install-mode-label span {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .install-mode pre {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .install-note {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .install-note::before {
+      content: '# ';
+      color: var(--border);
+    }
+
+    @media (max-width: 480px) {
+      .hero { padding: 56px 0 48px; }
+      .wordmark { font-size: 34px; }
+      .hero-tagline { font-size: 17px; }
+      .tab-labels label { padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <div class="container">
+      <div class="wordmark">
+        <span class="wm-open">open</span><span class="wm-pipe">|</span><span class="wm-aws">aws</span><span class="wm-vpn">vpn</span>
+      </div>
+
+      <p class="hero-tagline">AWS Client VPN without the proprietary client</p>
+      <p class="hero-sub">Native SAML/SSO for Linux — including headless servers and CI/CD</p>
+
+      <div class="hero-badge">
+        <span class="dot">●</span>
+        v1.0.0 · SAML working · CLI available · FC43 arm64/amd64/ppc64le
+      </div>
+
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://github.com/BOPOHA/openlawsvpn">View on GitHub →</a>
+        <a class="btn btn-secondary" href="#install">Install ↓</a>
+        <a class="btn btn-secondary" href="https://github.com/BOPOHA/openlawsvpn#readme">Read docs →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="install" id="install">
+    <div class="container">
+      <h2>Install</h2>
+
+      <div class="tabs">
+        <input type="radio" name="install-tab" id="tab-fedora" checked>
+        <input type="radio" name="install-tab" id="tab-source">
+
+        <div class="tab-labels">
+          <label for="tab-fedora">Fedora / RHEL</label>
+          <label for="tab-source">From source</label>
+        </div>
+
+        <div class="tab-panels">
+
+          <div class="tab-panel" id="panel-fedora">
+            <div class="install-modes">
+
+              <div class="install-mode">
+                <div class="install-mode-label"><span>as root</span></div>
+                <pre><code>dnf copr enable vorona/openlawsvpn -y
+dnf install openlawsvpn-cli -y
+openlawsvpn-cli connect /path/to/client-config.ovpn --standalone</code></pre>
+              </div>
+
+              <div class="install-mode">
+                <div class="install-mode-label"><span>rootless</span></div>
+                <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
+sudo dnf install openlawsvpn-cli openvpn3 -y
+openlawsvpn-cli connect ~/Downloads/client-config.ovpn</code></pre>
+                <p class="install-note">rootless mode requires openvpn3 and its dependency gdbuspp</p>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="tab-panel" id="panel-source">
+            <pre><code>git clone https://github.com/BOPOHA/openlawsvpn
+make linux</code></pre>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

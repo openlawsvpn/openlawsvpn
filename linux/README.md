@@ -107,25 +107,29 @@ On Linux, the client handles the network interface (TUN device) in two ways:
 
 ## Build
 
-The project now builds against the specific version of OpenVPN 3 Linux source code.
+Builds against openvpn3-core via a git submodule (`openvpn3-core/` at repo root),
+pinned to the version matching the current openvpn3-linux release.
+
+To update the openvpn3-core pin when a new openvpn3-linux is released:
+```bash
+make update-openvpn3-core OPENVPN3_LINUX_VERSION=v28
+git commit -m "chore: bump openvpn3-core to match openvpn3-linux v28"
+```
 
 ### Standard Build
 
 From repository root:
 
 ```bash
+git clone https://github.com/BOPOHA/openlawsvpn
 make linux
 ```
 
-By default, the client builds with D-Bus support (requires `glib2-devel` and `gio-2.0`). 
+By default, the client builds with D-Bus support (requires `glib2-devel` and `gio-2.0`).
 
-This will automatically download the OpenVPN 3 Linux source tarball if it's not present, extract it to `openvpn3-src/`, configure the project using CMake/Ninja, and build the executable.
-
-Binary path: `build/linux/openlawsvpn-cli`
+Binary path: `build/bin/openlawsvpn-cli`
 
 ### Minimal Build (No D-Bus)
-
-To build a minimal version without GIO/GLib and D-Bus support (useful for minimal/headless/non-Linux environments or for testing direct mode):
 
 ```bash
 mkdir -p build/linux-nodbus
@@ -133,15 +137,14 @@ cmake -S linux -B build/linux-nodbus -DENABLE_DBUS=OFF -G Ninja
 cmake --build build/linux-nodbus
 ```
 
-In this mode, the client will only support "Direct Mode" (`--standalone`) and will not require D-Bus or GLib at runtime.
+In this mode, the client only supports Direct Mode (`--standalone`) and does not
+require D-Bus or GLib at runtime.
 
 ### Build Requirements
 
-The build process requires the following tools and libraries:
-*   `cmake`, `ninja-build`, `gcc-c++`
+*   `cmake`, `ninja-build`, `gcc-c++`, `git`
 *   `openssl-devel`, `lz4-devel`
 *   `glib2-devel` (and its dependencies, including `gio-2.0`)
-*   `curl` (for downloading dependencies)
 
 ### RPM Build
 

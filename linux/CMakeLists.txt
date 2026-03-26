@@ -9,11 +9,10 @@ include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../openvpn3-src/openvpn3-core)
+set(CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../openvpn3-core)
 set(LINUX_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories(${CORE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../openvpn3-src/src)
+include_directories(SYSTEM ${CORE_DIR})
 include_directories(${LINUX_DIR}/include)
 
 # Find dependencies
@@ -96,4 +95,6 @@ install(TARGETS openlawsvpn
 
 set_target_properties(openlawsvpn-cli PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    INSTALL_RPATH "$ORIGIN/../lib"
+    BUILD_RPATH "$ORIGIN/../lib"
 )

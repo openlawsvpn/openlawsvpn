@@ -12,7 +12,7 @@ Summary:        Custom OpenVPN 3 Client with SAML support
 License:        LGPL-2.1-or-later
 URL:            https://github.com/openlaws/openlawsvpn
 Source0:        {{{ git_repo_pack }}}
-Source1:        https://swupdate.openvpn.net/community/releases/openvpn3-linux-27.tar.xz
+Source1:        {{{ git_pack path="openvpn3-core" }}}
 
 BuildRequires:  cmake
 BuildRequires:  gcc-c++
@@ -54,13 +54,9 @@ Graphical user interface for openlawsvpn based on Flutter.
 %endif
 
 %prep
-%setup -q -n %{name}
-mkdir -p openvpn3-src
-tar xf %{SOURCE1} -C openvpn3-src --strip-components=1
-
-# Apply patches to openvpn3-src
-patch -p0 < patches/cryptoalgs.hpp.patch
-patch -p0 < patches/ovpncli.cpp.patch
+{{{ git_repo_setup_macro }}}
+mkdir -p openvpn3-core
+tar -xf %{SOURCE1} -C openvpn3-core --strip-components=1
 
 %build
 cd linux

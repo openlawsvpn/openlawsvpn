@@ -1,4 +1,4 @@
-.PHONY: all linux clean flutter-rpm openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock
+.PHONY: all linux clean flutter-rpm openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock update-openvpn3-core
 
 SPEC_FILE := linux/openlawsvpn.spec
 PROJECTNAME := openlawsvpn
@@ -10,13 +10,10 @@ BUILD_DIR ?= $(shell pwd)/build/linux
 GUI_BUILD_DIR ?= $(shell pwd)/build/gui
 CMAKE_INSTALL_PREFIX ?= $(shell pwd)/build
 
+OPENVPN3_LINUX_VERSION ?= v27
+
 OPENVPN3_RPM_SPEC := docs/openvpn3.spec
 OPENVPN3_RPM_VERSION := $(shell rpmspec --srpm -q --qf "%{Version}-%{Release}" ${OPENVPN3_RPM_SPEC})
-
-VENDOR_SRC := openvpn3-src
-OPENVPN3_VERSION := 27
-OPENVPN3_TAR := openvpn3-linux-$(OPENVPN3_VERSION).tar.xz
-OPENVPN3_URL := https://swupdate.openvpn.net/community/releases/$(OPENVPN3_TAR)
 
 # Detect fast linker (mold is fastest, then lld)
 LINKER := $(shell which mold 2>/dev/null || which lld 2>/dev/null)
@@ -30,14 +27,10 @@ FLUTTER_BIN ?= flutter
 
 all: linux gui
 
-$(OPENVPN3_TAR):
-	curl -L -o $(OPENVPN3_TAR) $(OPENVPN3_URL)
+openvpn3-core/.git:
+	git submodule update --init openvpn3-core
 
-$(VENDOR_SRC): $(OPENVPN3_TAR)
-	mkdir -p $(VENDOR_SRC)
-	tar xf $(OPENVPN3_TAR) -C $(VENDOR_SRC) --strip-components=1
-
-linux: $(VENDOR_SRC)
+linux: openvpn3-core/.git
 	mkdir -p $(BUILD_DIR)
 	cmake -S linux -B $(BUILD_DIR) \
 		-G Ninja \
@@ -61,7 +54,7 @@ gui: linux
 	fi
 
 clean:
-	rm -rf build rpmbuild $(VENDOR_SRC) cmake-build-debug .ccache rpm-results
+	rm -rf build rpmbuild cmake-build-debug .ccache rpm-results
 	rm -rf $(PROJECTTMPDIR)
 	rm -rf gui/build  gui/.dart_tool gui/linux/flutter/ephemeral gui/.flutter-plugins-dependencies
 
@@ -96,3 +89,11 @@ openvpn3-rpm:
         --addrepo=https://download.copr.fedorainfracloud.org/results/vorona/openlawsvpn/fedora-$(FEDORA_VERSION)-x86_64 \
 		$(PROJECTTMPDIR)/openvpn3-$(OPENVPN3_RPM_VERSION).src.rpm
 	@find ~/rpmbuild/RPMS /var/lib/mock/fedora-$(FEDORA_VERSION)-x86_64/result -name "openvpn3-*.rpm"
+
+# Update openvpn3-core submodule to match a given openvpn3-linux release.
+# Usage: make update-openvpn3-core OPENVPN3_LINUX_VERSION=v27
+update-openvpn3-core:
+	@eval $$(./scripts/resolve-openvpn3-core.sh $(OPENVPN3_LINUX_VERSION)) && \
+		git -C openvpn3-core checkout $$OPENVPN3_CORE_SHA && \
+		git add openvpn3-core && \
+		echo "openvpn3-core updated to $$OPENVPN3_CORE_TAG ($$OPENVPN3_CORE_SHA)"

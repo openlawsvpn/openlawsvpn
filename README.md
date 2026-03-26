@@ -15,13 +15,14 @@ A specialized OpenVPN 3 based client for AWS Client VPN endpoints with native SA
 The project uses a unified Makefile to build both the C++ core and the Flutter GUI.
 
 ### Requirements
-- **Build Tools**: `cmake`, `ninja-build`, `gcc-c++`, `make`, `curl`
+- **Build Tools**: `cmake`, `ninja-build`, `gcc-c++`, `make`, `git`
 - **Libraries**: `openssl-devel`, `lz4-devel`, `glib2-devel`, `gtk3-devel`, `libcanberra-devel`
 - **SDK**: `flutter` (for the GUI)
-- **Runtime**: `openvpn3-linux` (for D-Bus mode)
+- **Runtime (rootless mode)**: `openvpn3` from [Fedora COPR](https://copr.fedorainfracloud.org/coprs/vorona/openlawsvpn/)
 
 ### Quick Build
 ```bash
+git clone https://github.com/BOPOHA/openlawsvpn
 # Build both CLI and GUI
 make all
 ```
