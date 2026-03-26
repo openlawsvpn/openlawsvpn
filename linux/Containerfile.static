@@ -1,0 +1,8 @@
+FROM alpine:latest
+RUN apk add --no-cache \
+    cmake ninja gcc g++ musl-dev pkgconf \
+    openssl-dev openssl-libs-static \
+    lz4-dev lz4-static \
+    zlib-dev zlib-static \
+    asio-dev linux-headers
+WORKDIR /src

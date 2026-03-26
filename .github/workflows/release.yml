@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-static:
+    name: Build static binary (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build static builder image
+        run: docker build --platform linux/${{ matrix.arch }} -t static-builder -f linux/Containerfile.static .
+
+      - name: Configure
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} -v ${{ github.workspace }}:/src static-builder \
+            cmake -S linux -B build/linux-static -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX=build \
+              -DCMAKE_INSTALL_LIBDIR=lib \
+              -DBUILD_STATIC=ON \
+              -DENABLE_DBUS=OFF
+
+      - name: Build and strip
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} -v ${{ github.workspace }}:/src static-builder \
+            sh -c "cmake --build build/linux-static --target openlawsvpn-cli-static && \
+                   strip build/linux-static/openlawsvpn-cli-static"
+          cp build/linux-static/openlawsvpn-cli-static \
+             openlawsvpn-cli-linux-${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openlawsvpn-cli-linux-${{ matrix.arch }}
+          path: openlawsvpn-cli-linux-${{ matrix.arch }}
+
+  release:
+    needs: build-static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS
+        run: sha256sum openlawsvpn-cli-linux-* > SHA256SUMS
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            openlawsvpn-cli-linux-amd64 \
+            openlawsvpn-cli-linux-arm64 \
+            SHA256SUMS

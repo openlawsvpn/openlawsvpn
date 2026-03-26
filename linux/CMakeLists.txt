@@ -98,3 +98,60 @@ set_target_properties(openlawsvpn-cli PROPERTIES
     INSTALL_RPATH "$ORIGIN/../lib"
     BUILD_RPATH "$ORIGIN/../lib"
 )
+
+# Static CLI binary — no D-Bus, statically linked OpenSSL/LZ4/zlib, DIRECT mode only.
+# Intended to be built inside an Alpine Linux container (see: make linux-static).
+# Alpine's openssl-dev and lz4-dev include .a files; Fedora 43+ does not ship openssl-static.
+option(BUILD_STATIC "Build openlawsvpn-cli-static (no D-Bus, statically linked libs)" OFF)
+
+if(BUILD_STATIC)
+    # Fail early with a clear message if static libs are not present.
+    # Temporarily restrict find_library to .a only so we don't pick up .so files.
+    set(_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    foreach(_lib ssl crypto lz4 z)
+        find_library(_static_${_lib} NAMES ${_lib})
+        if(NOT _static_${_lib})
+            set(CMAKE_FIND_LIBRARY_SUFFIXES ${_saved_suffixes})
+            message(FATAL_ERROR
+                "lib${_lib}.a not found — required for BUILD_STATIC.\n"
+                "Use the Alpine container:  make linux-static\n"
+                "Alpine manually:           apk add openssl-dev openssl-libs-static lz4-dev lz4-static zlib-dev zlib-static")
+        endif()
+        unset(_static_${_lib} CACHE)
+    endforeach()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_saved_suffixes})
+
+    add_executable(openlawsvpn-cli-static
+        src/main.cpp
+        src/libopenlawsvpn.cpp
+        src/saml_capture.cpp
+        ${CORE_DIR}/openvpn/crypto/data_epoch.cpp
+    )
+
+    target_compile_definitions(openlawsvpn-cli-static PRIVATE
+        ASIO_STANDALONE
+        USE_ASIO
+        HAVE_LZ4
+        USE_OPENSSL
+        OPENVPN_DEFAULT_MODE=\"${OPENVPN_DEFAULT_MODE}\"
+        ${DBUS_DEFINITIONS}
+    )
+
+    target_include_directories(openlawsvpn-cli-static PRIVATE
+        ${DBUS_INCLUDE_DIRS}
+    )
+
+    # Fully static binary — no dynamic libc dependency.
+    # Works cleanly with musl (Alpine); avoid on glibc hosts (NSS/resolver issues).
+    target_link_options(openlawsvpn-cli-static PRIVATE -static)
+    target_link_libraries(openlawsvpn-cli-static PRIVATE
+        ssl crypto lz4 z pthread dl
+    )
+
+    set_target_properties(openlawsvpn-cli-static PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+
+    install(TARGETS openlawsvpn-cli-static DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()

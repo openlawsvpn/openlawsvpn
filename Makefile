@@ -1,4 +1,4 @@
-.PHONY: all linux clean flutter-rpm openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock update-openvpn3-core
+.PHONY: all linux linux-static clean flutter-rpm openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock update-openvpn3-core
 
 SPEC_FILE := linux/openlawsvpn.spec
 PROJECTNAME := openlawsvpn
@@ -7,6 +7,7 @@ RPM_VERSION := $(shell rpmspec --srpm -q --qf "%{Version}-%{Release}" $(SPEC_FIL
 FEDORA_VERSION := $(shell rpm -E %fedora)
 
 BUILD_DIR ?= $(shell pwd)/build/linux
+BUILD_DIR_STATIC ?= $(shell pwd)/build/linux-static
 GUI_BUILD_DIR ?= $(shell pwd)/build/gui
 CMAKE_INSTALL_PREFIX ?= $(shell pwd)/build
 
@@ -52,6 +53,24 @@ gui: linux
 		cp -r gui/build/linux/x64/release/bundle/* $(GUI_BUILD_DIR)/; \
 		echo "GUI bundle copied to $(GUI_BUILD_DIR)"; \
 	fi
+
+CONTAINER_ENGINE ?= podman
+STATIC_BUILDER_IMAGE ?= localhost/openlawsvpn-static-builder
+# Override to cross-build: make linux-static ARCH=arm64  (requires qemu-user-static)
+ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+linux-static: openvpn3-core/.git
+	$(CONTAINER_ENGINE) build --platform linux/$(ARCH) -t $(STATIC_BUILDER_IMAGE) -f linux/Containerfile.static .
+	$(CONTAINER_ENGINE) run --rm --platform linux/$(ARCH) -v $(shell pwd):/src:z $(STATIC_BUILDER_IMAGE) \
+		cmake -S linux -B build/linux-static -G Ninja \
+		    -DCMAKE_BUILD_TYPE=Release \
+		    -DCMAKE_INSTALL_PREFIX=build \
+		    -DCMAKE_INSTALL_LIBDIR=lib \
+		    -DBUILD_STATIC=ON \
+		    -DENABLE_DBUS=OFF
+	$(CONTAINER_ENGINE) run --rm --platform linux/$(ARCH) -v $(shell pwd):/src:z $(STATIC_BUILDER_IMAGE) \
+		cmake --build build/linux-static --target openlawsvpn-cli-static
+	@echo "Static binary: $(BUILD_DIR_STATIC)/openlawsvpn-cli-static"
 
 clean:
 	rm -rf build rpmbuild cmake-build-debug .ccache rpm-results

@@ -129,6 +129,23 @@ By default, the client builds with D-Bus support (requires `glib2-devel` and `gi
 
 Binary path: `build/bin/openlawsvpn-cli`
 
+### Static Binary (No D-Bus, no runtime .so deps)
+
+Produces a self-contained `openlawsvpn-cli-static` with OpenSSL, LZ4, and zlib
+statically linked. Runs in Direct Mode only (requires root/`CAP_NET_ADMIN`).
+Intended for distribution via `install.sh` and GitHub Releases.
+
+Built inside an Alpine Linux (musl) container — fully static, zero dynamic
+dependencies. Works on any `x86_64` Linux regardless of glibc version.
+
+```bash
+make linux-static                       # uses podman by default
+CONTAINER_ENGINE=docker make linux-static
+```
+
+Requires `podman` or `docker` on the host. No other dependencies needed locally.
+Output: `build/linux-static/openlawsvpn-cli-static` (~6 MB stripped)
+
 ### Minimal Build (No D-Bus)
 
 ```bash
