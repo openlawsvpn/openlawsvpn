@@ -3,7 +3,7 @@
 # See LICENSE and LICENSE_USAGE_EXCEPTION for terms.
 Name:           openlawsvpn
 Version:        1.0.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Custom OpenVPN 3 Client with SAML support
 
 # GUI is disabled by default
@@ -110,6 +110,8 @@ ln -s %{_libdir}/openlawsvpn/openlawsvpn-gui %{buildroot}%{_bindir}/openlawsvpn-
 %endif
 
 %changelog
+* Thu Mar 27 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-5
+- Automatic SAML re-authentication on session expiry (NEED_CREDS/AUTH_FAILED after connect)
 * Tue Mar 24 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-4
 - Remove unused dependency: fmt-devel, openvpn3-client
 * Mon Mar 23 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-2

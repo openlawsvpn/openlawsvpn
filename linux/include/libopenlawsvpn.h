@@ -54,6 +54,10 @@ public:
 
     void disconnect();
 
+    // Blocks until the Phase 2 tunnel is torn down. Returns true if SAML
+    // re-authentication is needed (e.g. session expired), false on permanent failure.
+    bool wait_for_disconnect();
+
     // Read and filter config file (removes AWS-proprietary directives)
     static std::string read_and_filter_config(const std::string& path);
 

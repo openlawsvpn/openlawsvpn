@@ -77,7 +77,7 @@ static openvpn::InitProcess::Init g_init_process;
 
 class CoreClient : public openvpn::ClientAPI::OpenVPNClient {
 public:
-    CoreClient(class openlawsvpn::OpenVPNClient* parent) : parent_(parent), saml_url_(""), state_id_(""), remote_ip_(""), done_(false), connected_(false), error_(false), error_msg_("") {}
+    CoreClient(class openlawsvpn::OpenVPNClient* parent) : parent_(parent), saml_url_(""), state_id_(""), remote_ip_(""), done_(false), connected_(false), error_(false), error_msg_(""), need_reauth_(false), final_disconnect_(false) {}
 
     // TunBuilder methods
     virtual bool tun_builder_new() override {
@@ -208,6 +208,14 @@ public:
         if (error_) throw std::runtime_error(error_msg_);
     }
 
+    // Blocks until the connection is fully torn down after initial connect.
+    // Returns true if a SAML re-authentication is needed to reconnect.
+    bool wait_for_final_disconnect() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait(lock, [this]{ return final_disconnect_; });
+        return need_reauth_;
+    }
+
 private:
     openlawsvpn::OpenVPNClient* parent_;
     std::string saml_url_;
@@ -217,6 +225,8 @@ private:
     bool connected_;
     bool error_;
     std::string error_msg_;
+    bool need_reauth_;
+    bool final_disconnect_;
     std::mutex mutex_;
     std::condition_variable cv_;
     std::unique_ptr<openvpn::TunBuilderCapture> capture_;
@@ -301,11 +311,33 @@ void CoreClient::event(const openvpn::ClientAPI::Event& ev) {
          std::unique_lock<std::mutex> lock(mutex_);
          connected_ = true;
          cv_.notify_all();
-    } else if (ev.name == "FATAL_ERROR" || ev.name == "AUTH_FAILED") {
+    } else if (ev.name == "NEED_CREDS") {
+        // Fired when the reconnect attempt requires new credentials (e.g. SAML session expired).
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (connected_) need_reauth_ = true;
+    } else if (ev.name == "DISCONNECTED") {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (connected_) {
+            final_disconnect_ = true;
+            cv_.notify_all();
+        }
+    } else if (ev.name == "AUTH_FAILED") {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (connected_) {
+            // AUTH_FAILED after an established session = server rejected the stored session ID.
+            need_reauth_ = true;
+        } else {
+            error_ = true;
+            error_msg_ = ev.name + ": " + ev.info;
+            cv_.notify_all();
+        }
+    } else if (ev.name == "FATAL_ERROR") {
          std::unique_lock<std::mutex> lock(mutex_);
-         error_ = true;
-         error_msg_ = ev.name + ": " + ev.info;
-         cv_.notify_all();
+         if (!connected_) {
+             error_ = true;
+             error_msg_ = ev.name + ": " + ev.info;
+             cv_.notify_all();
+         }
     }
 }
 
@@ -436,6 +468,13 @@ void OpenVPNClient::connect_phase2(const std::string& state_id, const std::strin
         throw std::runtime_error("D-Bus support is not enabled in this build");
 #endif
     }
+}
+
+bool OpenVPNClient::wait_for_disconnect() {
+    if (impl_->core_client) {
+        return impl_->core_client->wait_for_final_disconnect();
+    }
+    return false;
 }
 
 void OpenVPNClient::disconnect() {

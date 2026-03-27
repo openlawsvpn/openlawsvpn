@@ -83,30 +83,36 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            std::cout << openlawsvpn::get_log_prefix() << " Phase 1: connecting to provoke CRV1 challenge...\n" << std::flush;
-            auto phase1 = client.connect_phase1();
-            
-            std::cout << openlawsvpn::get_log_prefix() << " SAML URL received: " << phase1.saml_url << "\n" << std::flush;
-            std::cout << openlawsvpn::get_log_prefix() << " State ID: " << phase1.state_id << "\n" << std::flush;
-            std::cout << openlawsvpn::get_log_prefix() << " Please complete SAML login in your browser.\n" << std::flush;
-            
-            openlawsvpn::SAMLCapture capture;
-            auto token_future = capture.start();
-            
-            // In a real CLI we might want to automatically open the browser
-            open_browser(phase1.saml_url);
+            // Helper: run Phase 1 + Phase 2 and return when the tunnel is up.
+            auto do_connect = [&]() {
+                std::cout << openlawsvpn::get_log_prefix() << " Phase 1: connecting to provoke CRV1 challenge...\n" << std::flush;
+                auto phase1 = client.connect_phase1();
 
-            std::string token = token_future.get();
-            std::cout << openlawsvpn::get_log_prefix() << " SAML token received.\n" << std::flush;
+                std::cout << openlawsvpn::get_log_prefix() << " SAML URL received: " << phase1.saml_url << "\n" << std::flush;
+                std::cout << openlawsvpn::get_log_prefix() << " State ID: " << phase1.state_id << "\n" << std::flush;
+                std::cout << openlawsvpn::get_log_prefix() << " Please complete SAML login in your browser.\n" << std::flush;
 
-            std::cout << openlawsvpn::get_log_prefix() << " Phase 2: establishing tunnel...\n" << std::flush;
-            client.connect_phase2(phase1.state_id, token, phase1.remote_ip);
-            
+                openlawsvpn::SAMLCapture capture;
+                auto token_future = capture.start();
+                open_browser(phase1.saml_url);
+
+                std::string token = token_future.get();
+                std::cout << openlawsvpn::get_log_prefix() << " SAML token received.\n" << std::flush;
+
+                std::cout << openlawsvpn::get_log_prefix() << " Phase 2: establishing tunnel...\n" << std::flush;
+                client.connect_phase2(phase1.state_id, token, phase1.remote_ip);
+            };
+
+            do_connect();
             std::cout << openlawsvpn::get_log_prefix() << " Tunnel is up.\n" << std::flush;
             std::cout << openlawsvpn::get_log_prefix() << " Connected. Press Ctrl-C to disconnect.\n" << std::flush;
-            
-            while(true) {
-                std::this_thread::sleep_for(std::chrono::seconds(10));
+
+            while (true) {
+                bool need_reauth = client.wait_for_disconnect();
+                if (!need_reauth) break;
+                std::cout << openlawsvpn::get_log_prefix() << " Session expired. Re-authenticating via SAML...\n" << std::flush;
+                do_connect();
+                std::cout << openlawsvpn::get_log_prefix() << " Tunnel is up.\n" << std::flush;
             }
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;

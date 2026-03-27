@@ -93,7 +93,8 @@ On Linux, the client handles the network interface (TUN device) in two ways:
 5.  **TOKEN_CAPTURED:** HTTP server receives `SAMLResponse`; stop server.
 6.  **PHASE_2_CONNECTING:** Restart OpenVPN with username `N/A` and the formatted `CRV1:R:<state_id>:<token>` password.
 7.  **CONNECTED:** Tunnel is established and routing is configured.
-8.  **DISCONNECTING/CLEANUP:** Close the tunnel, release D-Bus sessions, and clean up temporary files.
+8.  **SESSION_EXPIRED:** openvpn3-core emits `NEED_CREDS` or `AUTH_FAILED` during a reconnect attempt (stored session ID rejected by server). The client automatically re-runs steps 2–7 (full SAML re-authentication) without user intervention.
+9.  **DISCONNECTING/CLEANUP:** Close the tunnel, release D-Bus sessions, and clean up temporary files.
 
 ---
 
