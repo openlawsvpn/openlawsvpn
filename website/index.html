@@ -157,6 +157,7 @@
       margin-bottom: -1px;
     }
 
+    #tab-binary:checked ~ .tab-labels label[for="tab-binary"],
     #tab-fedora:checked ~ .tab-labels label[for="tab-fedora"],
     #tab-source:checked ~ .tab-labels label[for="tab-source"] {
       color: var(--text);
@@ -165,6 +166,7 @@
 
     .tab-panel { display: none; }
 
+    #tab-binary:checked ~ .tab-panels #panel-binary,
     #tab-fedora:checked ~ .tab-panels #panel-fedora,
     #tab-source:checked ~ .tab-panels #panel-source {
       display: block;
@@ -255,13 +257,13 @@
 
       <div class="hero-badge">
         <span class="dot">●</span>
-        v1.0.0 · SAML working · CLI available · FC43 arm64/amd64/ppc64le
+        v1.0.0-4 · SAML working · static binaries · FC43 arm64/amd64/ppc64le
       </div>
 
       <div class="hero-cta">
-        <a class="btn btn-primary" href="https://github.com/BOPOHA/openlawsvpn">View on GitHub →</a>
+        <a class="btn btn-primary" href="https://github.com/openlawsvpn/openlawsvpn">View on GitHub →</a>
         <a class="btn btn-secondary" href="#install">Install ↓</a>
-        <a class="btn btn-secondary" href="https://github.com/BOPOHA/openlawsvpn#readme">Read docs →</a>
+        <a class="btn btn-secondary" href="https://github.com/openlawsvpn/openlawsvpn#readme">Read docs →</a>
       </div>
     </div>
   </section>
@@ -271,15 +273,39 @@
       <h2>Install</h2>
 
       <div class="tabs">
-        <input type="radio" name="install-tab" id="tab-fedora" checked>
+        <input type="radio" name="install-tab" id="tab-binary" checked>
+        <input type="radio" name="install-tab" id="tab-fedora">
         <input type="radio" name="install-tab" id="tab-source">
 
         <div class="tab-labels">
+          <label for="tab-binary">Binary</label>
           <label for="tab-fedora">Fedora / RHEL</label>
           <label for="tab-source">From source</label>
         </div>
 
         <div class="tab-panels">
+
+          <div class="tab-panel" id="panel-binary">
+            <div class="install-modes">
+
+              <div class="install-mode">
+                <div class="install-mode-label"><span>amd64</span></div>
+                <pre><code>curl -LO https://github.com/openlawsvpn/openlawsvpn/releases/latest/download/openlawsvpn-cli-linux-amd64
+chmod +x openlawsvpn-cli-linux-amd64
+sudo mv openlawsvpn-cli-linux-amd64 /usr/local/bin/openlawsvpn-cli</code></pre>
+              </div>
+
+              <div class="install-mode">
+                <div class="install-mode-label"><span>arm64</span></div>
+                <pre><code>curl -LO https://github.com/openlawsvpn/openlawsvpn/releases/latest/download/openlawsvpn-cli-linux-arm64
+chmod +x openlawsvpn-cli-linux-arm64
+sudo mv openlawsvpn-cli-linux-arm64 /usr/local/bin/openlawsvpn-cli</code></pre>
+              </div>
+
+              <p class="install-note">static binary runs in standalone (root) mode only — requires root or CAP_NET_ADMIN+CAP_NET_RAW; rootless mode is available via the Fedora / RHEL packages</p>
+
+            </div>
+          </div>
 
           <div class="tab-panel" id="panel-fedora">
             <div class="install-modes">
@@ -303,7 +329,7 @@ openlawsvpn-cli connect ~/Downloads/client-config.ovpn</code></pre>
           </div>
 
           <div class="tab-panel" id="panel-source">
-            <pre><code>git clone https://github.com/BOPOHA/openlawsvpn
+            <pre><code>git clone https://github.com/openlawsvpn/openlawsvpn
 make linux</code></pre>
           </div>
 
