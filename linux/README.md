@@ -122,7 +122,7 @@ git commit -m "chore: bump openvpn3-core to match openvpn3-linux v28"
 From repository root:
 
 ```bash
-git clone https://github.com/BOPOHA/openlawsvpn
+git clone https://github.com/openlawsvpn/openlawsvpn
 make linux
 ```
 

@@ -22,7 +22,7 @@ The project uses a unified Makefile to build both the C++ core and the Flutter G
 
 ### Quick Build
 ```bash
-git clone https://github.com/BOPOHA/openlawsvpn
+git clone https://github.com/openlawsvpn/openlawsvpn
 make linux          # dynamic CLI + shared lib (D-Bus mode, requires glib2/gio)
 make linux-static   # fully static CLI via Alpine container (requires podman or docker)
 ```
@@ -33,7 +33,7 @@ The build artifacts will be available in:
 - GUI: `build/gui/openlawsvpn-gui`
 
 Pre-built static binaries for `amd64` and `arm64` are attached to each
-[GitHub Release](https://github.com/BOPOHA/openlawsvpn/releases).
+[GitHub Release](https://github.com/openlawsvpn/openlawsvpn/releases).
 
 ## Usage
 
