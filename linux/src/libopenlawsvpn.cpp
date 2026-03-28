@@ -409,10 +409,12 @@ OpenVPNClient::Phase1Result OpenVPNClient::connect_phase1() {
     impl_->core_client->provide_creds(creds);
 
     std::cout << get_log_prefix() << " Starting Phase 1 connect..." << std::endl;
-    // Connect in a thread to allow wait_for_saml to work if connect() blocks indefinitely
-    std::thread p1_thread([this]() {
+    // Capture the shared_ptr by value so CoreClient stays alive until the thread exits,
+    // even if impl_->core_client is replaced by connect_phase2() while we're running.
+    auto p1_client = impl_->core_client;
+    std::thread p1_thread([p1_client]() {
         try {
-            impl_->core_client->connect();
+            p1_client->connect();
         } catch (...) {}
     });
     p1_thread.detach();
@@ -444,10 +446,14 @@ void OpenVPNClient::connect_phase2(const std::string& state_id, const std::strin
         std::cout << get_log_prefix() << " SAML token length: " << token.length() << std::endl;
         impl_->core_client->provide_creds(creds);
         
-        std::thread connect_thread([this]() {
+        // Capture the shared_ptr by value so CoreClient stays alive until the thread
+        // exits. Without this, connect_phase1() on re-auth can destroy the CoreClient
+        // while io_context.run() is still unwinding inside the connect_thread — UB.
+        auto p2_client = impl_->core_client;
+        std::thread connect_thread([p2_client]() {
             std::cout << get_log_prefix() << " connect_phase2 thread started" << std::endl;
             try {
-                impl_->core_client->connect();
+                p2_client->connect();
             } catch (const std::exception& e) {
                 std::cerr << "Background connect_phase2 error: " << e.what() << std::endl;
             }
