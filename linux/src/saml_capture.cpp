@@ -39,9 +39,9 @@ public:
             if (content_length > 0) {
                 size_t remaining = content_length;
                 if (sb.size() > 0) {
-                    char buf[sb.size()];
-                    is.read(buf, sb.size());
-                    body.append(buf, is.gcount());
+                    std::string buf(sb.size(), '\0');
+                    is.read(buf.data(), sb.size());
+                    body.append(buf.data(), is.gcount());
                     remaining -= is.gcount();
                 }
                 if (remaining > 0) {
@@ -51,9 +51,9 @@ public:
                 }
             } else {
                 // Fallback for GET or small POST already in buffer
-                char buf[sb.size()];
-                is.read(buf, sb.size());
-                body.append(buf, is.gcount());
+                std::string buf(sb.size(), '\0');
+                is.read(buf.data(), sb.size());
+                body.append(buf.data(), is.gcount());
             }
 
             auto url_decode = [](const std::string& str) {
