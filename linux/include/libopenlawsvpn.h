@@ -105,6 +105,8 @@ public:
     static std::string read_and_filter_config(const std::string& path);
 
 private:
+    friend class CoreClient;   // defined in libopenlawsvpn.cpp; accesses tun/protect callbacks
+
     std::string config_path_;
     ConnectMode mode_;
     LogCallback   log_callback_      = nullptr;
