@@ -142,13 +142,14 @@ public:
     }
 
     virtual bool socket_protect(int fd, std::string remote, bool ipv6) override {
+        // Always record the remote IP — used by wait_for_saml() to pin Phase 2 to
+        // the same server. On Android the callback returns early without setting it.
+        if (!remote.empty()) remote_ip_ = remote;
         if (parent_->socket_protect_fn_) {
             return parent_->socket_protect_fn_(fd, remote, ipv6);
         }
-        // Linux default: record the remote IP; no protection needed (no routing loop risk).
         if (g_log_level > 1)
             std::cout << get_log_prefix() << " Socket protect: " << remote << std::endl;
-        remote_ip_ = remote;
         return true;
     }
 
