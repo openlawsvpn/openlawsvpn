@@ -22,6 +22,7 @@
 #pragma once
 #include <string>
 #include <functional>
+#include <vector>
 
 namespace openlawsvpn {
 
@@ -32,6 +33,46 @@ enum class ConnectMode {
 
 typedef void (*LogCallback)(const char* message, void* user_data);
 
+/**
+ * Platform-independent description of a VPN tunnel interface.
+ * Populated from openvpn3-core's TunBuilderCapture before invoking
+ * TunEstablishFn. Callers need no openvpn3-core headers.
+ */
+struct TunConfig {
+    struct IpNet {
+        std::string address;
+        int         prefix_length = 0;
+        bool        ipv6          = false;
+    };
+    int                      mtu             = 1500;
+    std::string              session_name;
+    std::vector<IpNet>       tunnel_addresses;   // local VPN IP address(es)
+    std::vector<IpNet>       routes;             // routes to push into tunnel
+    std::vector<std::string> dns_servers;
+    std::vector<std::string> search_domains;
+    bool                     reroute_gw_ipv4 = false;
+    bool                     reroute_gw_ipv6 = false;
+};
+
+/**
+ * Called when openvpn3-core requests tun interface creation.
+ * Must return an open tun fd (caller takes ownership), or -1 on failure.
+ *
+ * Linux:   not needed — TunLinuxSetup is used when this is not set.
+ * Android: VpnService.Builder.establish() → pfd.detachFd().
+ * macOS:   NEPacketTunnelProvider / utun via openlawsvpnagent.
+ */
+using TunEstablishFn  = std::function<int(const TunConfig&)>;
+
+/**
+ * Called for each UDP/TCP socket openvpn3-core creates before connecting.
+ * Must return true to allow the connection.
+ *
+ * Android: must call VpnService.protect(fd) to prevent routing loops.
+ * Linux/macOS: returning true is sufficient.
+ */
+using SocketProtectFn = std::function<bool(int fd, const std::string& remote, bool ipv6)>;
+
 class OpenVPNClient {
 public:
     OpenVPNClient(const std::string& config_path);
@@ -39,6 +80,8 @@ public:
 
     void set_connect_mode(ConnectMode mode);
     void set_log_callback(LogCallback callback, void* user_data);
+    void set_tun_establish_fn(TunEstablishFn fn);
+    void set_socket_protect_fn(SocketProtectFn fn);
 
     // Connect to trigger Phase 1 (get SAML URL)
     struct Phase1Result {
@@ -64,8 +107,10 @@ public:
 private:
     std::string config_path_;
     ConnectMode mode_;
-    LogCallback log_callback_ = nullptr;
-    void* user_data_ = nullptr;
+    LogCallback   log_callback_      = nullptr;
+    void*         user_data_         = nullptr;
+    TunEstablishFn  tun_establish_fn_;
+    SocketProtectFn socket_protect_fn_;
     struct Impl;
     Impl* impl_;
 

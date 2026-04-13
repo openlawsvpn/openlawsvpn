@@ -45,8 +45,10 @@
 
 #include <client/ovpncli.cpp>
 #include <openvpn/tun/builder/capture.hpp>
-#include <openvpn/tun/linux/client/tunmethods.hpp>
-#include <openvpn/tun/linux/client/tunsetup.hpp>
+#ifndef __ANDROID__
+#  include <openvpn/tun/linux/client/tunmethods.hpp>
+#  include <openvpn/tun/linux/client/tunsetup.hpp>
+#endif
 
 namespace {
     int g_log_level = 1;
@@ -139,10 +141,13 @@ public:
         return capture_->tun_builder_set_layer(layer);
     }
 
-    virtual bool socket_protect(int, std::string remote, bool) override {
-        if (g_log_level > 1) {
-            std::cout << get_log_prefix() << " Socket protect: " << remote << std::endl;
+    virtual bool socket_protect(int fd, std::string remote, bool ipv6) override {
+        if (parent_->socket_protect_fn_) {
+            return parent_->socket_protect_fn_(fd, remote, ipv6);
         }
+        // Linux default: record the remote IP; no protection needed (no routing loop risk).
+        if (g_log_level > 1)
+            std::cout << get_log_prefix() << " Socket protect: " << remote << std::endl;
         remote_ip_ = remote;
         return true;
     }
@@ -247,27 +252,58 @@ void OpenVPNClient::emit_log(const std::string& msg) {
     }
 }
 
+// Convert openvpn3-core TunBuilderCapture to our platform-independent TunConfig.
+static openlawsvpn::TunConfig extract_tun_config(const openvpn::TunBuilderCapture& cap) {
+    openlawsvpn::TunConfig cfg;
+    cfg.mtu             = cap.mtu > 0 ? cap.mtu : 1500;
+    cfg.session_name    = cap.session_name;
+    cfg.reroute_gw_ipv4 = cap.reroute_gw.ipv4;
+    cfg.reroute_gw_ipv6 = cap.reroute_gw.ipv6;
+    for (const auto& a : cap.tunnel_addresses)
+        cfg.tunnel_addresses.push_back({a.address, (int)a.prefix_length, a.ipv6});
+    for (const auto& r : cap.add_routes)
+        cfg.routes.push_back({r.address, (int)r.prefix_length, r.ipv6});
+    for (const auto& [_, server] : cap.dns_options.servers)
+        for (const auto& addr : server.addresses)
+            cfg.dns_servers.push_back(addr.address);
+    for (const auto& d : cap.dns_options.search_domains)
+        cfg.search_domains.push_back(d.domain);
+    return cfg;
+}
+
 int CoreClient::tun_builder_establish() {
+    // Platform-specific path: use the registered callback if set (Android / macOS / iOS).
+    if (parent_->tun_establish_fn_) {
+        parent_->emit_log_public(get_log_prefix() + " Establishing TUN interface (platform callback)...\n");
+        int fd = parent_->tun_establish_fn_(extract_tun_config(*capture_));
+        if (fd >= 0)
+            parent_->emit_log_public(get_log_prefix() + " TUN fd=" + std::to_string(fd) + "\n");
+        else
+            parent_->emit_log_public(get_log_prefix() + " TUN establish failed (callback returned -1)\n");
+        return fd;
+    }
+
+#ifndef __ANDROID__
+    // Linux fallback — TunLinuxSetup creates the tun device directly.
     try {
         openvpn::TunLinuxSetup::Setup<openvpn::TunIPRoute::TunMethods> setup;
         openvpn::TunLinuxSetup::Setup<openvpn::TunIPRoute::TunMethods>::Config config;
         config.layer = openvpn::Layer(openvpn::Layer::OSI_LAYER_3);
-        std::cout << get_log_prefix() << " Establishing TUN interface..." << std::endl;
-        parent_->emit_log_public(get_log_prefix() + " Establishing TUN interface...\n");
+        parent_->emit_log_public(get_log_prefix() + " Establishing TUN interface (Linux)...\n");
         int fd = setup.establish(*capture_, &config, nullptr, std::cout);
-        if (fd >= 0) {
-            std::cout << get_log_prefix() << " TUN interface established, fd=" << fd << std::endl;
+        if (fd >= 0)
             parent_->emit_log_public(get_log_prefix() + " TUN interface established, fd=" + std::to_string(fd) + "\n");
-        } else {
-            std::cerr << get_log_prefix() << " Failed to establish TUN interface" << std::endl;
+        else
             parent_->emit_log_public(get_log_prefix() + " Failed to establish TUN interface\n");
-        }
         return fd;
     } catch (const std::exception& e) {
-        std::cerr << get_log_prefix() << " TunBuilder establish error: " << e.what() << std::endl;
         parent_->emit_log_public(get_log_prefix() + " TunBuilder establish error: " + std::string(e.what()) + "\n");
         return -1;
     }
+#else
+    parent_->emit_log_public(get_log_prefix() + " ERROR: no tun_establish_fn set on Android\n");
+    return -1;
+#endif
 }
 
 void CoreClient::event(const openvpn::ClientAPI::Event& ev) {
@@ -388,6 +424,14 @@ std::string OpenVPNClient::read_and_filter_config(const std::string& path) {
 void OpenVPNClient::set_log_callback(LogCallback callback, void* user_data) {
     log_callback_ = callback;
     user_data_ = user_data;
+}
+
+void OpenVPNClient::set_tun_establish_fn(TunEstablishFn fn) {
+    tun_establish_fn_ = std::move(fn);
+}
+
+void OpenVPNClient::set_socket_protect_fn(SocketProtectFn fn) {
+    socket_protect_fn_ = std::move(fn);
 }
 
 OpenVPNClient::Phase1Result OpenVPNClient::connect_phase1() {
