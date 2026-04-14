@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — openlawsvpn</title>
+  <link rel="canonical" href="https://openlawsvpn.com/privacy">
+  <meta name="description" content="Privacy policy for the openlawsvpn Android app. No data collection, no telemetry, no tracking.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23f78166'>|</text></svg>">
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --accent:   #f78166;
+      --green:    #3fb950;
+      --blue:     #58a6ff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.7;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Nav */
+    nav {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    nav a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      transition: color 0.15s;
+    }
+    nav a:hover { color: var(--text); }
+    .nav-wordmark {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .nav-wordmark .pipe { color: var(--accent); font-weight: 300; }
+
+    /* Content */
+    .content {
+      padding: 56px 0 80px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .effective {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 36px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    p strong { color: var(--text); }
+
+    ul {
+      list-style: none;
+      margin-bottom: 12px;
+    }
+
+    ul li {
+      color: var(--muted);
+      padding: 4px 0 4px 20px;
+      position: relative;
+    }
+
+    ul li::before {
+      content: "·";
+      position: absolute;
+      left: 6px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .callout {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin: 24px 0;
+    }
+
+    .callout p {
+      margin: 0;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+
+    /* Footer */
+    footer {
+      padding: 24px 0;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/" class="nav-wordmark">open<span class="pipe">|</span>awsvpn</a>
+  </div>
+</nav>
+
+<main class="content">
+  <div class="container">
+
+    <h1>Privacy Policy</h1>
+    <p class="effective">Effective date: April 14, 2026 &nbsp;·&nbsp; Applies to: openlawsvpn Android app</p>
+
+    <div class="callout">
+      <p><strong>Short version:</strong> The openlawsvpn app does not collect, store, or transmit any personal data to openlawsvpn servers. Your VPN traffic goes directly to your own AWS endpoint.</p>
+    </div>
+
+    <h2>1. What we collect</h2>
+    <p><strong>Nothing.</strong> The app does not collect any personal information, usage analytics, crash reports, or telemetry. There are no SDKs in the app that phone home.</p>
+
+    <h2>2. Data stored on your device</h2>
+    <p>The following data is stored locally on your device only:</p>
+    <ul>
+      <li><strong>VPN profiles (.ovpn files)</strong> — stored in app-private storage, excluded from cloud backups and Android Auto Backup.</li>
+      <li><strong>Connection logs</strong> — held in memory while the app is open; cleared when the process ends. Never written to disk.</li>
+    </ul>
+    <p>No data from the app is accessible to other apps or synchronized to any cloud service.</p>
+
+    <h2>3. Data transmitted</h2>
+    <p>The only network traffic initiated by the app is:</p>
+    <ul>
+      <li><strong>VPN tunnel traffic</strong> — encrypted and routed directly to your organization's AWS Client VPN endpoint. openlawsvpn servers are never in the data path.</li>
+      <li><strong>SAML authentication</strong> — your identity provider's login page opens in a Chrome Custom Tab (a separate browser process). The app receives only the resulting SAML token; it never sees your credentials or the login page content.</li>
+    </ul>
+
+    <h2>4. Third-party services</h2>
+    <p>The app does not integrate any third-party analytics, advertising, crash-reporting, or data-processing services.</p>
+
+    <h2>5. Permissions</h2>
+    <p>The app requests only the permissions required to operate as a VPN client:</p>
+    <ul>
+      <li><strong>INTERNET</strong> — required to establish the VPN tunnel.</li>
+      <li><strong>BIND_VPN_SERVICE / VpnService</strong> — required by Android to create a VPN tunnel interface.</li>
+      <li><strong>FOREGROUND_SERVICE / FOREGROUND_SERVICE_SPECIAL_USE</strong> — keeps the VPN running while the app is in the background.</li>
+      <li><strong>POST_NOTIFICATIONS</strong> — displays the persistent "Connected" notification and Disconnect action (Android 13+).</li>
+      <li><strong>ACCESS_NETWORK_STATE</strong> — detects network loss so the app can update its status when the tunnel drops.</li>
+    </ul>
+    <p>No location, contacts, camera, microphone, or storage permissions are requested.</p>
+
+    <h2>6. Children's privacy</h2>
+    <p>The app is not directed at children under 13 and does not knowingly collect information from children.</p>
+
+    <h2>7. Changes to this policy</h2>
+    <p>If this policy changes materially, the updated version will be posted at this URL with a revised effective date. The app is open source — all changes are visible in the public repository.</p>
+
+    <h2>8. Contact</h2>
+    <p>Questions about this policy: <a href="mailto:security@openlawsvpn.com">security@openlawsvpn.com</a></p>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    &copy; 2026 openlawsvpn contributors &nbsp;·&nbsp;
+    <a href="/">Home</a> &nbsp;·&nbsp;
+    <a href="https://github.com/openlawsvpn/openlawsvpn-android">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>
