@@ -3,12 +3,16 @@ mod about_view;
 mod connection;
 mod log_view;
 mod profile_store;
+mod saml_server;
+mod vpn_service;
 
 use about_view::AboutView;
-use connection::ConnectionScreen;
+use connection::{ConnectionScreen, ConnectionState};
 use log_view::LogView;
 use profile_store::ProfileStore;
+use vpn_service::{VpnEvent, VpnService, VpnState};
 
+use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::CssProvider;
 use libadwaita::{Application, ApplicationWindow, HeaderBar, ViewStack, ViewSwitcherBar};
@@ -58,9 +62,10 @@ fn main() {
 
 fn build_ui(app: &Application) {
     let store = Rc::new(RefCell::new(ProfileStore::new()));
+    let vpn = Rc::new(VpnService::new());
 
-    let connection_screen = ConnectionScreen::new(store.clone());
-    let log_view = LogView::new();
+    let connection_screen = ConnectionScreen::new(store.clone(), vpn.clone());
+    let log_view = Rc::new(LogView::new());
     let about_view = AboutView::new();
 
     let stack = ViewStack::new();
@@ -78,7 +83,6 @@ fn build_ui(app: &Application) {
     let about_page = stack.add_titled(&about_view.widget, Some("about"), "About");
     about_page.set_icon_name(Some("help-about-symbolic"));
 
-    // Plain title in the header bar — tabs live only in the bottom bar (like Android).
     let header = HeaderBar::new();
     let title_label = gtk4::Label::new(Some("openlawsvpn"));
     title_label.set_css_classes(&["title"]);
@@ -101,5 +105,45 @@ fn build_ui(app: &Application) {
         .content(&content)
         .build();
 
+    // Subscribe to VPN events and forward to UI (runs on main GTK thread via glib::idle_add)
+    let mut event_rx = vpn.subscribe();
+    let conn_screen_weak = Rc::downgrade(&connection_screen);
+    let log_view_weak = Rc::downgrade(&log_view);
+
+    glib::spawn_future_local(async move {
+        loop {
+            match event_rx.recv().await {
+                Ok(VpnEvent::StateChanged(state)) => {
+                    let ui_state = vpn_state_to_ui(&state);
+                    if let Some(cs) = conn_screen_weak.upgrade() {
+                        cs.borrow_mut().set_state(ui_state);
+                    }
+                }
+                Ok(VpnEvent::LogLine(line)) => {
+                    if let Some(lv) = log_view_weak.upgrade() {
+                        lv.append_line(&line);
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(_) => break,
+            }
+        }
+    });
+
     window.present();
+}
+
+fn vpn_state_to_ui(state: &VpnState) -> ConnectionState {
+    match state {
+        VpnState::Idle => ConnectionState::Idle,
+        VpnState::Connecting => ConnectionState::Connecting,
+        VpnState::WaitingSaml { .. } => ConnectionState::WaitingSaml,
+        VpnState::Connected { server_ip, assigned_ip } => ConnectionState::Connected {
+            server_ip: server_ip.clone(),
+            assigned_ip: assigned_ip.clone(),
+        },
+        VpnState::Disconnecting => ConnectionState::Disconnecting,
+        VpnState::NeedReauth => ConnectionState::NeedReauth { reason: String::new() },
+        VpnState::Error(msg) => ConnectionState::Error { message: msg.clone() },
+    }
 }
