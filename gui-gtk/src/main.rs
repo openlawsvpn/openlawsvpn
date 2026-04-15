@@ -78,11 +78,11 @@ fn build_ui(app: &Application) {
     let about_page = stack.add_titled(&about_view.widget, Some("about"), "About");
     about_page.set_icon_name(Some("help-about-symbolic"));
 
+    // Plain title in the header bar — tabs live only in the bottom bar (like Android).
     let header = HeaderBar::new();
-    let switcher_title = libadwaita::ViewSwitcher::new();
-    switcher_title.set_stack(Some(&stack));
-    switcher_title.set_policy(libadwaita::ViewSwitcherPolicy::Wide);
-    header.set_title_widget(Some(&switcher_title));
+    let title_label = gtk4::Label::new(Some("openlawsvpn"));
+    title_label.set_css_classes(&["title"]);
+    header.set_title_widget(Some(&title_label));
 
     let switcher_bar = ViewSwitcherBar::new();
     switcher_bar.set_stack(Some(&stack));

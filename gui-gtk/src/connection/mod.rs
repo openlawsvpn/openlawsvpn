@@ -226,6 +226,15 @@ impl ConnectionScreen {
         dialog.set_title("Import .ovpn Profile");
         dialog.set_modal(true);
 
+        // Filter: show only .ovpn files in Nautilus / GTK file picker
+        let filter = gtk4::FileFilter::new();
+        filter.set_name(Some("OpenVPN profiles (*.ovpn)"));
+        filter.add_suffix("ovpn");
+        let filters = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
+        filters.append(&filter);
+        dialog.set_filters(Some(&filters));
+        dialog.set_default_filter(Some(&filter));
+
         dialog.open(parent.as_ref(), gtk4::gio::Cancellable::NONE, move |result| {
             if let Ok(file) = result {
                 let path = file.path().unwrap_or_default();
