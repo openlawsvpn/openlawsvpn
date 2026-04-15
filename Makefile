@@ -53,7 +53,10 @@ gui: linux
 	cargo build --release --manifest-path gui-gtk/Cargo.toml
 	mkdir -p $(GUI_BUILD_DIR)
 	cp gui-gtk/target/release/openlawsvpn-gui $(GUI_BUILD_DIR)/
+	cp $(CMAKE_INSTALL_PREFIX)/lib/libopenlawsvpn.so $(GUI_BUILD_DIR)/
 	@echo "GUI binary: $(GUI_BUILD_DIR)/openlawsvpn-gui"
+	@echo "Run:        LD_LIBRARY_PATH=$(GUI_BUILD_DIR) $(GUI_BUILD_DIR)/openlawsvpn-gui"
+	@echo "Or:         cd $(GUI_BUILD_DIR) && ./openlawsvpn-gui"
 
 gui-check:
 	@echo "GUI status: gui-gtk/ directory not yet created."
