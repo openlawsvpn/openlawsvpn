@@ -176,16 +176,10 @@ fn service_thread(
                             return;
                         }
 
-                        // Phase 2 submitted — the C++ library will log "Connected" when the tunnel
-                        // is up. For now we trust the log and emit Connected after connect_phase2
-                        // returns without error. TODO: parse log lines for "Connected to" to
-                        // extract server/assigned IP and emit the real Connected state.
-                        emit(&event_tx, VpnEvent::StateChanged(
-                            VpnState::Connected {
-                                server_ip: String::new(),
-                                assigned_ip: String::new(),
-                            },
-                        ));
+                        // Phase 2 is void — success/failure is determined by the log stream.
+                        // The log callback will call emit_state_from_log() on each line,
+                        // which transitions to Connected or Error based on the log content.
+                        // We do NOT emit Connected here.
                     });
 
                     let _ = handle.await;
@@ -221,7 +215,8 @@ fn emit(tx: &tokio::sync::broadcast::Sender<VpnEvent>, event: VpnEvent) {
     tx.send(event).ok();
 }
 
-// C-callable log callback — forwards lines to the broadcast channel
+// C-callable log callback — forwards lines to the broadcast channel and
+// drives state transitions by inspecting the log content.
 unsafe extern "C" fn log_callback(message: *const std::ffi::c_char, user_data: *mut std::ffi::c_void) {
     if message.is_null() || user_data.is_null() {
         return;
@@ -230,5 +225,27 @@ unsafe extern "C" fn log_callback(message: *const std::ffi::c_char, user_data: *
     let tx = unsafe {
         &*(user_data as *const tokio::sync::broadcast::Sender<VpnEvent>)
     };
-    tx.send(VpnEvent::LogLine(msg)).ok();
+
+    // Forward raw log line to UI
+    tx.send(VpnEvent::LogLine(msg.trim_end().to_string())).ok();
+
+    // Detect tunnel up/down/error from well-known log patterns
+    let lower = msg.to_lowercase();
+    if lower.contains("connected to") || lower.contains("tunnel is up") {
+        tx.send(VpnEvent::StateChanged(VpnState::Connected {
+            server_ip: String::new(),
+            assigned_ip: String::new(),
+        })).ok();
+    } else if lower.contains("connectphase2 error") || lower.contains("auth_failed") || lower.contains("authentication failed") {
+        // Extract the error message after the "ERROR:" marker
+        let detail = msg
+            .find("ERROR:")
+            .map(|i| msg[i + 6..].trim().to_string())
+            .unwrap_or_else(|| msg.trim().to_string());
+        tx.send(VpnEvent::StateChanged(VpnState::Error(detail))).ok();
+    } else if lower.contains("need_creds") || lower.contains("session expired") {
+        tx.send(VpnEvent::StateChanged(VpnState::NeedReauth)).ok();
+    } else if lower.contains("disconnected") || lower.contains("tunnel is down") {
+        tx.send(VpnEvent::StateChanged(VpnState::Idle)).ok();
+    }
 }
