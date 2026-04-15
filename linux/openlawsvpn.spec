@@ -35,13 +35,13 @@ Command line interface and shared library for openlawsvpn.
 # To enable: add BuildRequires for gtk4-devel, libadwaita-devel, cargo
 # and uncomment the gui build/install sections below.
 #
-# %package gui
+# package gui
 # Summary:        Graphical user interface for openlawsvpn
-# Requires:       %{name}-cli = %{version}-%{release}
+# Requires:       openlawsvpn-cli
 # Requires:       gtk4
 # Requires:       libadwaita
 #
-# %description gui
+# description gui
 # Native GTK4 + libadwaita desktop GUI for openlawsvpn.
 # Mirrors the Android app: profile list, connection states, live log, system tray.
 
@@ -71,13 +71,13 @@ cd ..
 %{_bindir}/openlawsvpn-cli
 %{_libdir}/libopenlawsvpn.so
 
-# %files gui
-# %{_bindir}/openlawsvpn-gui
+# files gui
+# /usr/bin/openlawsvpn-gui
 
 %changelog
 * Wed Apr 15 2026 openlawsvpn contributors - 1.0.0-6
 - Remove Flutter GUI dependency; GUI now GTK4+libadwaita+Rust (Phase 7, not yet built)
-* Thu Mar 27 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-5
+* Fri Mar 27 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-5
 - Automatic SAML re-authentication on session expiry (NEED_CREDS/AUTH_FAILED after connect)
 * Tue Mar 24 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-4
 - Remove unused dependency: fmt-devel, openvpn3-client
