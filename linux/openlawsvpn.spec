@@ -3,14 +3,11 @@
 # See LICENSE and LICENSE_USAGE_EXCEPTION for terms.
 Name:           openlawsvpn
 Version:        1.0.0
-Release:        5%{?dist}
-Summary:        Custom OpenVPN 3 Client with SAML support
-
-# GUI is disabled by default
-%bcond_with gui
+Release:        6%{?dist}
+Summary:        AWS Client VPN client with SAML/SSO support
 
 License:        LGPL-2.1-or-later
-URL:            https://github.com/openlaws/openlawsvpn
+URL:            https://github.com/openlawsvpn/openlawsvpn
 Source0:        {{{ git_repo_pack }}}
 Source1:        {{{ git_pack path="openvpn3-core" }}}
 
@@ -22,36 +19,31 @@ BuildRequires:  asio-devel
 BuildRequires:  glib2-devel
 BuildRequires:  chrpath
 
-%if %{with gui}
-BuildRequires:  pkgconfig(gtk+-3.0)
-BuildRequires:  libcanberra-devel
-# and flutter...
-%endif
-
 %description
-A specialized OpenVPN 3 client for Linux that handles SAML authentication
-and establishes tunnels via D-Bus or standalone mode.
-
-# openlawsvpn (the core and CLI) should not have GUI dependencies.
-# The GUI package is optional and separated.
+openlawsvpn is a specialized OpenVPN 3 client for Linux that handles SAML
+authentication (Okta, Azure AD, Google Workspace, any SAML 2.0 IdP) and
+establishes tunnels via D-Bus (unprivileged) or standalone mode.
 
 %package cli
 Summary:        Command line interface for openlawsvpn
-# Ensure it only requires what's needed for the CLI
-# NotRequires:       openvpn3-linux
-# NotRequires:       xdg-utils
 
 %description cli
-Command line interface and core library for openlawsvpn.
+Command line interface and shared library for openlawsvpn.
 
-%if %{with gui}
-%package gui
-Summary:        Graphical user interface for openlawsvpn
-Requires:       %{name}-cli = %{version}-%{release}
-
-%description gui
-Graphical user interface for openlawsvpn based on Flutter.
-%endif
+# GUI sub-package — GTK4 + libadwaita (Rust).
+# Not yet built; placeholder for when gui-gtk/ is implemented (Phase 7).
+# To enable: add BuildRequires for gtk4-devel, libadwaita-devel, cargo
+# and uncomment the gui build/install sections below.
+#
+# %package gui
+# Summary:        Graphical user interface for openlawsvpn
+# Requires:       %{name}-cli = %{version}-%{release}
+# Requires:       gtk4
+# Requires:       libadwaita
+#
+# %description gui
+# Native GTK4 + libadwaita desktop GUI for openlawsvpn.
+# Mirrors the Android app: profile list, connection states, live log, system tray.
 
 %prep
 {{{ git_repo_setup_macro }}}
@@ -64,52 +56,27 @@ cd linux
 %cmake_build
 cd ..
 
-%if %{with gui}
-# Build GUI
-# Note: This assumes flutter is available in the environment
-cd gui
-# Clear flags that confuse clang (used by flutter/cmake for some parts)
-export CFLAGS=""
-export CXXFLAGS=""
-export LDFLAGS=""
-%{?flutter_bin}%{!?flutter_bin:flutter} pub get
-%{?flutter_bin}%{!?flutter_bin:flutter} build linux --release --no-pub
-cd ..
-%endif
+# GUI build (uncomment when gui-gtk/ exists):
+# cargo build --release --manifest-path gui-gtk/Cargo.toml
 
 %install
 cd linux
 %cmake_install
 cd ..
 
-%if %{with gui}
-# Install GUI
-mkdir -p %{buildroot}%{_bindir}
-mkdir -p %{buildroot}%{_libdir}/openlawsvpn
-cp gui/build/linux/x64/release/bundle/openlawsvpn-gui %{buildroot}%{_libdir}/openlawsvpn/
-cp -r gui/build/linux/x64/release/bundle/data %{buildroot}%{_libdir}/openlawsvpn/
-cp -r gui/build/linux/x64/release/bundle/lib/* %{buildroot}%{_libdir}/openlawsvpn/
-
-# Fix RPATH for the GUI binary and its plugins
-find %{buildroot}%{_libdir}/openlawsvpn/ -name "*.so" -exec chrpath --delete {} \;
-chrpath --replace '$ORIGIN/../openlawsvpn' %{buildroot}%{_libdir}/openlawsvpn/openlawsvpn-gui || \
-chrpath --delete %{buildroot}%{_libdir}/openlawsvpn/openlawsvpn-gui
-
-# Create a symlink
-ln -s %{_libdir}/openlawsvpn/openlawsvpn-gui %{buildroot}%{_bindir}/openlawsvpn-gui
-%endif
+# GUI install (uncomment when gui-gtk/ exists):
+# install -Dm755 gui-gtk/target/release/openlawsvpn-gui %{buildroot}%{_bindir}/openlawsvpn-gui
 
 %files cli
 %{_bindir}/openlawsvpn-cli
 %{_libdir}/libopenlawsvpn.so
 
-%if %{with gui}
-%files gui
-%{_bindir}/openlawsvpn-gui
-%{_libdir}/openlawsvpn/
-%endif
+# %files gui
+# %{_bindir}/openlawsvpn-gui
 
 %changelog
+* Wed Apr 15 2026 openlawsvpn contributors - 1.0.0-6
+- Remove Flutter GUI dependency; GUI now GTK4+libadwaita+Rust (Phase 7, not yet built)
 * Thu Mar 27 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-5
 - Automatic SAML re-authentication on session expiry (NEED_CREDS/AUTH_FAILED after connect)
 * Tue Mar 24 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-4

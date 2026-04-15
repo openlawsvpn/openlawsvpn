@@ -1,4 +1,4 @@
-.PHONY: all linux linux-static clean flutter-rpm openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock update-openvpn3-core
+.PHONY: all linux linux-static gui gui-check clean openvpn3-rpm linux-rpm linux-srpm linux-rpm-mock update-openvpn3-core
 
 SPEC_FILE := linux/openlawsvpn.spec
 PROJECTNAME := openlawsvpn
@@ -24,9 +24,7 @@ CCACHE_BIN := $(shell which ccache 2>/dev/null)
 CCACHE_DIR := $(shell pwd)/.ccache
 export CCACHE_DIR
 
-FLUTTER_BIN ?= flutter
-
-all: linux gui
+all: linux
 
 openvpn3-core/.git:
 	git submodule update --init openvpn3-core
@@ -45,14 +43,21 @@ linux: openvpn3-core/.git
 	@echo "Binary path: $(CMAKE_INSTALL_PREFIX)/bin/openlawsvpn-cli"
 	@echo "Library path: $(CMAKE_INSTALL_PREFIX)/lib/libopenlawsvpn.so"
 
+# GTK4 + libadwaita GUI (gui-gtk/ directory, Rust).
+# Requires: libgtk4-devel, libadwaita-devel, cargo
 gui: linux
-	cd gui && $(FLUTTER_BIN) build linux --no-pub || true
-	mkdir -p $(GUI_BUILD_DIR)/lib
-	cp $(CMAKE_INSTALL_PREFIX)/lib/libopenlawsvpn.so $(GUI_BUILD_DIR)/lib/
-	@if [ -d gui/build/linux/x64/release/bundle ]; then \
-		cp -r gui/build/linux/x64/release/bundle/* $(GUI_BUILD_DIR)/; \
-		echo "GUI bundle copied to $(GUI_BUILD_DIR)"; \
+	@if [ ! -d gui-gtk ]; then \
+		echo "gui-gtk/ not found — run 'make gui-check' or see tasks/07_linux_gui/overview.md"; \
+		exit 1; \
 	fi
+	cargo build --release --manifest-path gui-gtk/Cargo.toml
+	mkdir -p $(GUI_BUILD_DIR)
+	cp gui-gtk/target/release/openlawsvpn-gui $(GUI_BUILD_DIR)/
+	@echo "GUI binary: $(GUI_BUILD_DIR)/openlawsvpn-gui"
+
+gui-check:
+	@echo "GUI status: gui-gtk/ directory not yet created."
+	@echo "See tasks/07_linux_gui/overview.md for the implementation plan."
 
 CONTAINER_ENGINE ?= podman
 STATIC_BUILDER_IMAGE ?= localhost/openlawsvpn-static-builder
@@ -75,30 +80,20 @@ linux-static: openvpn3-core/.git
 clean:
 	rm -rf build rpmbuild cmake-build-debug .ccache rpm-results
 	rm -rf $(PROJECTTMPDIR)
-	rm -rf gui/build  gui/.dart_tool gui/linux/flutter/ephemeral gui/.flutter-plugins-dependencies
 
 linux-rpm:
-	# Use rpkg to handle the git_dir_pack macro
-	rpkg build --spec $(SPEC_FILE) --outdir rpmbuild \
-		--define "flutter_bin $(FLUTTER_BIN)"
+	rpkg build --spec $(SPEC_FILE) --outdir rpmbuild
 	@echo "RPMs are available in rpmbuild/RPMS/"
 	@find rpmbuild/RPMS -name "*.rpm"
 
 linux-srpm:
 	mkdir -p $(PROJECTTMPDIR)
-	# Get external sources defined in spec
 	spectool --get-files --directory $(PROJECTTMPDIR) $(SPEC_FILE)
-	# Create SRPM using rpkg to handle macros
 	rpkg srpm --spec $(SPEC_FILE) --outdir $(PROJECTTMPDIR)
 
 linux-rpm-mock: linux-srpm
 	mock --no-clean -r fedora-$(FEDORA_VERSION)-x86_64 \
 		$(PROJECTTMPDIR)/$(PROJECTNAME)-$(RPM_VERSION).src.rpm
-
-flutter-rpm:
-	rpmbuild --undefine=_disable_source_fetch -ba docs/flutter.spec
-	@echo "Flutter RPM is available in ~/rpmbuild/RPMS/"
-	@find ~/rpmbuild/RPMS -name "flutter-*.rpm"
 
 openvpn3-rpm:
 	mkdir -p $(PROJECTTMPDIR)

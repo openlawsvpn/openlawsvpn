@@ -164,6 +164,12 @@ require D-Bus or GLib at runtime.
 *   `openssl-devel`, `lz4-devel`
 *   `glib2-devel` (and its dependencies, including `gio-2.0`)
 
+### GUI
+
+The GTK4 + libadwaita desktop GUI (`openlawsvpn-gui`) is in `gui-gtk/` (Rust).
+It is not yet implemented — see Phase 7 in the project roadmap.
+The old Flutter/Dart GUI (`gui/`) has been removed.
+
 ### RPM Build
 
 To create an RPM package for your distribution:
