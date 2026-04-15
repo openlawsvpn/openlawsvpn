@@ -108,31 +108,33 @@ fn service_thread(
                         emit(&event_tx, VpnEvent::StateChanged(VpnState::Connecting));
 
                         let result = unsafe { ffi::openvpn_client_connect_phase1(ptr) };
-                        if result.saml_url.is_null() {
+
+                        // Extract strings before checking — always free to avoid leaks
+                        let saml_url = if result.saml_url.is_null() { String::new() } else {
+                            unsafe { CStr::from_ptr(result.saml_url).to_string_lossy().into_owned() }
+                        };
+                        let state_id = if result.state_id.is_null() { String::new() } else {
+                            unsafe { CStr::from_ptr(result.state_id).to_string_lossy().into_owned() }
+                        };
+                        let remote_ip = if result.remote_ip.is_null() { String::new() } else {
+                            unsafe { CStr::from_ptr(result.remote_ip).to_string_lossy().into_owned() }
+                        };
+                        unsafe {
+                            if !result.saml_url.is_null() { ffi::openvpn_free_string(result.saml_url); }
+                            if !result.state_id.is_null() { ffi::openvpn_free_string(result.state_id); }
+                            if !result.remote_ip.is_null() { ffi::openvpn_free_string(result.remote_ip); }
+                        }
+
+                        // Validate: a real Phase 1 result has a non-empty SAML URL and state_id
+                        if saml_url.is_empty() || state_id.is_empty() {
                             emit(&event_tx, VpnEvent::StateChanged(
-                                VpnState::Error("Phase 1 failed".into()),
+                                VpnState::Error("Phase 1 failed — check openvpn3 D-Bus services are running".into()),
                             ));
                             return;
                         }
 
-                        let saml_url = unsafe {
-                            CStr::from_ptr(result.saml_url).to_string_lossy().into_owned()
-                        };
-                        let state_id = unsafe {
-                            CStr::from_ptr(result.state_id).to_string_lossy().into_owned()
-                        };
-                        let remote_ip = unsafe {
-                            CStr::from_ptr(result.remote_ip).to_string_lossy().into_owned()
-                        };
-                        unsafe {
-                            ffi::openvpn_free_string(result.saml_url);
-                            ffi::openvpn_free_string(result.state_id);
-                            ffi::openvpn_free_string(result.remote_ip);
-                        }
-
                         // Open browser and start SAML capture server
-                        let url = saml_url.clone();
-                        std::process::Command::new("xdg-open").arg(&url).spawn().ok();
+                        std::process::Command::new("xdg-open").arg(&saml_url).spawn().ok();
 
                         emit(&event_tx, VpnEvent::StateChanged(VpnState::WaitingSaml {
                             saml_url: saml_url.clone(),
@@ -143,13 +145,17 @@ fn service_thread(
                             Ok(t) => t,
                             Err(e) => {
                                 emit(&event_tx, VpnEvent::StateChanged(
-                                    VpnState::Error(format!("SAML capture failed: {}", e)),
+                                    VpnState::Error(format!("SAML login failed: {}", e)),
                                 ));
                                 return;
                             }
                         };
 
-                        // Phase 2
+                        // Phase 2 — send CRV1 token; tunnel comes up asynchronously via D-Bus signals.
+                        // We emit Connecting again while waiting; Connected is emitted when
+                        // wait_for_disconnect returns (or via D-Bus status, future work).
+                        emit(&event_tx, VpnEvent::StateChanged(VpnState::Connecting));
+
                         let c_state = CString::new(state_id).unwrap();
                         let c_token = CString::new(token).unwrap();
                         let c_remote = CString::new(remote_ip).unwrap();
@@ -163,8 +169,17 @@ fn service_thread(
                                     c_remote.as_ptr(),
                                 );
                             }
+                        } else {
+                            emit(&event_tx, VpnEvent::StateChanged(
+                                VpnState::Error("Client pointer lost before Phase 2".into()),
+                            ));
+                            return;
                         }
 
+                        // Phase 2 submitted — the C++ library will log "Connected" when the tunnel
+                        // is up. For now we trust the log and emit Connected after connect_phase2
+                        // returns without error. TODO: parse log lines for "Connected to" to
+                        // extract server/assigned IP and emit the real Connected state.
                         emit(&event_tx, VpnEvent::StateChanged(
                             VpnState::Connected {
                                 server_ip: String::new(),
