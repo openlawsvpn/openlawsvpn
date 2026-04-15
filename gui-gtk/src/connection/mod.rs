@@ -34,7 +34,7 @@ impl ConnectionScreen {
         let root = GtkBox::new(Orientation::Vertical, 0);
 
         // Header
-        let header = Label::new(Some("openlawsvpn"));
+        let header = Label::new(Some("Profiles"));
         header.set_css_classes(&["title-1"]);
         header.set_xalign(0.0);
         header.set_margin_start(16);
