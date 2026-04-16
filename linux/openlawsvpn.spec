@@ -3,7 +3,7 @@
 # See LICENSE and LICENSE_USAGE_EXCEPTION for terms.
 Name:           openlawsvpn
 Version:        1.0.0
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        AWS Client VPN client with SAML/SSO support
 
 License:        LGPL-2.1-or-later
@@ -81,6 +81,11 @@ cd gui-gtk && %cargo_install && cd ..
 %{_bindir}/openlawsvpn-gui
 
 %changelog
+* Thu Apr 16 2026 openlawsvpn contributors - 1.0.0-10
+- System tray support via StatusNotifierItem D-Bus (works on KDE and GNOME with AppIndicator extension)
+- Add gnome-shell-extension-appindicator as Requires for openlawsvpn-gui
+- Profile storage: chmod 600 on .ovpn files; no Secret Service dependency needed
+- CSS polish: monospace log view, card border-radius, coral delete accent
 * Thu Apr 16 2026 openlawsvpn contributors - 1.0.0-9
 - Relax bindgen build-dep to >=0.69 to match whatever Fedora ships (fc44 does not have 0.71)
 * Thu Apr 16 2026 openlawsvpn contributors - 1.0.0-8
