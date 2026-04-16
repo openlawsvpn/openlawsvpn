@@ -12,6 +12,7 @@ use log_view::LogView;
 use profile_store::ProfileStore;
 use vpn_service::{VpnEvent, VpnService, VpnState};
 
+use futures_util::StreamExt as _;
 use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::CssProvider;
@@ -105,27 +106,22 @@ fn build_ui(app: &Application) {
         .content(&content)
         .build();
 
-    // Subscribe to VPN events and forward to UI (runs on main GTK thread via glib::idle_add)
-    let mut event_rx = vpn.subscribe();
-    let conn_screen_weak = Rc::downgrade(&connection_screen);
-    let log_view_weak = Rc::downgrade(&log_view);
+    // Subscribe to VPN events.
+    // Move strong Rc refs into the closure — weak refs would become None after build_ui
+    // returns because the GTK stack only holds the inner widget (GtkBox), not the
+    // Rc<LogView> or Rc<RefCell<ConnectionScreen>> wrappers themselves.
+    let mut event_rx = vpn.take_event_rx();
 
     glib::spawn_future_local(async move {
-        loop {
-            match event_rx.recv().await {
-                Ok(VpnEvent::StateChanged(state)) => {
+        while let Some(event) = event_rx.next().await {
+            match event {
+                VpnEvent::StateChanged(state) => {
                     let ui_state = vpn_state_to_ui(&state);
-                    if let Some(cs) = conn_screen_weak.upgrade() {
-                        cs.borrow_mut().set_state(ui_state);
-                    }
+                    connection_screen.borrow_mut().set_state(ui_state);
                 }
-                Ok(VpnEvent::LogLine(line)) => {
-                    if let Some(lv) = log_view_weak.upgrade() {
-                        lv.append_line(&line);
-                    }
+                VpnEvent::LogLine(line) => {
+                    log_view.append_line(&line);
                 }
-                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(_) => break,
             }
         }
     });

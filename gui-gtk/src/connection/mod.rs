@@ -226,15 +226,11 @@ impl ConnectionScreen {
                     // Connect
                     *active_id.borrow_mut() = Some(profile_id.clone());
                     let tx = vpn.cmd_tx.clone();
-                    let pid = profile_id.clone();
                     let path = config_path.clone();
                     gtk4::glib::spawn_future_local(async move {
-                        tx.send(VpnCommand::Connect {
-                            profile_id: pid,
-                            config_path: path,
-                        })
-                        .await
-                        .ok();
+                        tx.send(VpnCommand::Connect { config_path: path })
+                            .await
+                            .ok();
                     });
                 }
             });
