@@ -3,7 +3,7 @@
 # See LICENSE and LICENSE_USAGE_EXCEPTION for terms.
 Name:           openlawsvpn
 Version:        1.0.0
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        AWS Client VPN client with SAML/SSO support
 
 License:        LGPL-2.1-or-later
@@ -22,6 +22,7 @@ BuildRequires:  cargo-rpm-macros
 BuildRequires:  gtk4-devel
 BuildRequires:  libadwaita-devel
 BuildRequires:  clang-devel
+BuildRequires:  rust-zbus+tokio-devel
 
 %description
 openlawsvpn is a specialized OpenVPN 3 client for Linux that handles SAML
@@ -39,10 +40,12 @@ Summary:        Graphical user interface for openlawsvpn
 Requires:       openlawsvpn-cli
 Requires:       gtk4
 Requires:       libadwaita
+Requires:       gnome-shell-extension-appindicator
 
 %description gui
 Native GTK4 + libadwaita desktop GUI for openlawsvpn.
 Profile management, SAML/SSO login, live connection log.
+Requires the AppIndicator GNOME Shell extension for system tray support.
 
 %prep
 {{{ git_repo_setup_macro }}}
@@ -78,6 +81,8 @@ cd gui-gtk && %cargo_install && cd ..
 %{_bindir}/openlawsvpn-gui
 
 %changelog
+* Thu Apr 16 2026 openlawsvpn contributors - 1.0.0-9
+- Relax bindgen build-dep to >=0.69 to match whatever Fedora ships (fc44 does not have 0.71)
 * Thu Apr 16 2026 openlawsvpn contributors - 1.0.0-8
 - Switch GUI build to cargo-rpm-macros; upgrade to gtk4 0.10 / libadwaita 0.8
 - Remove vendored Rust dependencies (use Fedora system registry)
