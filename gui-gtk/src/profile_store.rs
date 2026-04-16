@@ -36,8 +36,9 @@ impl ProfileStore {
         let dir = self.base_dir.join(&id);
         std::fs::create_dir_all(&dir).ok();
 
-        // Store config (plaintext for now — encryption added in Phase 7 step 8)
-        std::fs::write(dir.join("config.ovpn"), content).ok();
+        let config_path = dir.join("config.ovpn");
+        std::fs::write(&config_path, content).ok();
+        set_private(&config_path);
 
         let profile = Profile {
             id: id.clone(),
@@ -70,6 +71,15 @@ fn dirs_next() -> PathBuf {
             PathBuf::from(home).join(".local/share")
         });
     base.join("openlawsvpn/profiles")
+}
+
+fn set_private(path: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+    if let Ok(meta) = std::fs::metadata(path) {
+        let mut perms = meta.permissions();
+        perms.set_mode(0o600);
+        std::fs::set_permissions(path, perms).ok();
+    }
 }
 
 fn chrono_now() -> String {

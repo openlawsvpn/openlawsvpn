@@ -42,8 +42,11 @@ pub enum VpnCommand {
 
 pub struct VpnService {
     pub cmd_tx: tokio::sync::mpsc::Sender<VpnCommand>,
+    /// Tokio runtime handle from the background service thread.
+    /// Use this to spawn async work (e.g. tray D-Bus registration) on
+    /// the same runtime without needing a Tokio context on the GTK thread.
+    pub rt_handle: tokio::runtime::Handle,
     /// Holds the futures_channel receiver until the caller takes it with `take_event_rx()`.
-    /// Must be taken exactly once from the GTK main thread before the first event arrives.
     event_rx: std::cell::RefCell<Option<UnboundedReceiver<VpnEvent>>>,
 }
 
@@ -51,13 +54,18 @@ impl VpnService {
     pub fn new() -> Self {
         let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel::<VpnCommand>(8);
         let (event_tx, event_rx) = mpsc::unbounded::<VpnEvent>();
+        // Channel to receive the Tokio Handle back from the background thread.
+        let (handle_tx, handle_rx) = std::sync::mpsc::channel::<tokio::runtime::Handle>();
 
         std::thread::spawn(move || {
-            service_thread(cmd_rx, event_tx);
+            service_thread(cmd_rx, event_tx, handle_tx);
         });
+
+        let rt_handle = handle_rx.recv().expect("service thread did not send Handle");
 
         Self {
             cmd_tx,
+            rt_handle,
             event_rx: std::cell::RefCell::new(Some(event_rx)),
         }
     }
@@ -81,11 +89,15 @@ unsafe impl Send for ClientPtr {}
 fn service_thread(
     mut cmd_rx: tokio::sync::mpsc::Receiver<VpnCommand>,
     event_tx: UnboundedSender<VpnEvent>,
+    handle_tx: std::sync::mpsc::Sender<tokio::runtime::Handle>,
 ) {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .expect("tokio rt");
+
+    // Send the Handle to the main thread before entering block_on.
+    handle_tx.send(rt.handle().clone()).ok();
 
     rt.block_on(async move {
         let client: Arc<Mutex<Option<ClientPtr>>> = Arc::new(Mutex::new(None));

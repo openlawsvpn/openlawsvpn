@@ -4,12 +4,14 @@ mod connection;
 mod log_view;
 mod profile_store;
 mod saml_server;
+mod tray;
 mod vpn_service;
 
 use about_view::AboutView;
 use connection::{ConnectionScreen, ConnectionState};
 use log_view::LogView;
 use profile_store::ProfileStore;
+use tray::{TrayGuard, TrayState};
 use vpn_service::{VpnEvent, VpnService, VpnState};
 
 use futures_util::StreamExt as _;
@@ -20,10 +22,12 @@ use libadwaita::{Application, ApplicationWindow, HeaderBar, ViewStack, ViewSwitc
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 const APP_ID: &str = "com.openlawsvpn.gui";
 
 const STYLE: &str = "
+/* ── Log / About text area ── */
 .log-view {
     background-color: #f5f5f5;
     font-family: monospace;
@@ -33,6 +37,19 @@ const STYLE: &str = "
     .log-view {
         background-color: #1e1e1e;
     }
+}
+
+/* ── Profile cards ── */
+.profile-card {
+    border-radius: 12px;
+}
+
+/* ── Delete action coral accent ── */
+.delete-action {
+    color: #F78166;
+}
+.delete-action:hover {
+    background-color: alpha(#F78166, 0.12);
 }
 ";
 
@@ -106,16 +123,38 @@ fn build_ui(app: &Application) {
         .content(&content)
         .build();
 
-    // Subscribe to VPN events.
-    // Move strong Rc refs into the closure — weak refs would become None after build_ui
-    // returns because the GTK stack only holds the inner widget (GtkBox), not the
-    // Rc<LogView> or Rc<RefCell<ConnectionScreen>> wrappers themselves.
+    // ── System tray ─────────────────────────────────────────────────────────
+    let tray_state = Arc::new(Mutex::new(TrayState {
+        connected: false,
+    }));
+
+    // Keep the zbus connection alive for the lifetime of the app.
+    let _tray_guard: Option<TrayGuard> = tray::register(window.clone(), tray_state.clone(), &vpn.rt_handle);
+
+    // Always intercept close-request: GTK4's default handler only hides
+    // the window (never destroys it), so the app would stay alive forever.
+    // - With tray: hide to tray.
+    // - Without tray: destroy the window so the GApplication hold is
+    //   released and the main loop exits normally.
+    // Background Tokio thread keeps the process alive after the GLib loop
+    // exits — always exit explicitly on window close.
+    window.connect_close_request(|_| {
+        std::process::exit(0);
+    });
+
+    // ── VPN event loop ───────────────────────────────────────────────────────
+    // Move strong Rc refs into the closure — weak refs become None after
+    // build_ui() returns because the GTK stack only holds the inner widget.
     let mut event_rx = vpn.take_event_rx();
 
     glib::spawn_future_local(async move {
         while let Some(event) = event_rx.next().await {
             match event {
                 VpnEvent::StateChanged(state) => {
+                    // Keep tray icon state in sync
+                    if let Ok(mut ts) = tray_state.lock() {
+                        ts.connected = matches!(state, VpnState::Connected { .. });
+                    }
                     let ui_state = vpn_state_to_ui(&state);
                     connection_screen.borrow_mut().set_state(ui_state);
                 }

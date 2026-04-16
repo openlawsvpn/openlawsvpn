@@ -164,6 +164,7 @@ impl ConnectionScreen {
     ) -> ActionRow {
         let row = ActionRow::new();
         row.set_title(&profile.name);
+        row.add_css_class("profile-card");
 
         let is_active = active_id.borrow().as_deref() == Some(&profile.id);
         let current_state = state.borrow().clone();
@@ -260,7 +261,7 @@ impl ConnectionScreen {
                     menu_box.set_margin_top(4);
                     menu_box.set_margin_bottom(4);
                     let delete_btn = Button::with_label("Delete");
-                    delete_btn.set_css_classes(&["destructive-action", "flat"]);
+                    delete_btn.set_css_classes(&["flat", "delete-action"]);
                     menu_box.append(&delete_btn);
                     popover.set_child(Some(&menu_box));
                     popover.set_parent(&widget);
