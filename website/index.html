@@ -257,7 +257,7 @@
 
       <div class="hero-badge">
         <span class="dot">●</span>
-        v1.0.0-4 · SAML working · static binaries · FC43 arm64/amd64/ppc64le
+        v1.0.0-8 · SAML working · GTK4 GUI · static binaries · FC43 arm64/amd64/ppc64le
       </div>
 
       <div class="hero-cta">
@@ -311,18 +311,26 @@ sudo mv openlawsvpn-cli-linux-arm64 /usr/local/bin/openlawsvpn-cli</code></pre>
             <div class="install-modes">
 
               <div class="install-mode">
-                <div class="install-mode-label"><span>as root</span></div>
+                <div class="install-mode-label"><span>CLI (as root)</span></div>
                 <pre><code>dnf copr enable vorona/openlawsvpn -y
 dnf install openlawsvpn-cli -y
 openlawsvpn-cli connect /path/to/client-config.ovpn --standalone</code></pre>
               </div>
 
               <div class="install-mode">
-                <div class="install-mode-label"><span>rootless</span></div>
+                <div class="install-mode-label"><span>CLI (rootless)</span></div>
                 <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
 sudo dnf install openlawsvpn-cli openvpn3 -y
 openlawsvpn-cli connect ~/Downloads/client-config.ovpn</code></pre>
                 <p class="install-note">rootless mode requires openvpn3 and its dependency gdbuspp</p>
+              </div>
+
+              <div class="install-mode">
+                <div class="install-mode-label"><span>GUI</span></div>
+                <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
+sudo dnf install openlawsvpn-gui -y
+openlawsvpn-gui</code></pre>
+                <p class="install-note">GTK4 + libadwaita desktop app; pulls in openlawsvpn-cli automatically</p>
               </div>
 
             </div>
