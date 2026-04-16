@@ -68,7 +68,7 @@
 
     /* Hero */
     .hero {
-      padding: 80px 0 72px;
+      padding: 40px 0 32px;
     }
 
     .hero-tagline {
@@ -89,7 +89,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      margin-top: 28px;
+      margin-top: 16px;
       padding: 6px 14px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -102,7 +102,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 36px;
+      margin-top: 20px;
     }
 
     .btn {
@@ -129,14 +129,14 @@
 
     /* Install section */
     .install {
-      padding: 56px 0 72px;
+      padding: 24px 0 48px;
       border-top: 1px solid var(--border);
     }
 
     .install h2 {
       font-size: 24px;
       font-weight: 600;
-      margin-bottom: 28px;
+      margin-bottom: 16px;
     }
 
     /* CSS tabs — no JS */
@@ -159,6 +159,7 @@
 
     #tab-binary:checked ~ .tab-labels label[for="tab-binary"],
     #tab-fedora:checked ~ .tab-labels label[for="tab-fedora"],
+    #tab-android:checked ~ .tab-labels label[for="tab-android"],
     #tab-source:checked ~ .tab-labels label[for="tab-source"] {
       color: var(--text);
       border-bottom-color: var(--accent);
@@ -168,6 +169,7 @@
 
     #tab-binary:checked ~ .tab-panels #panel-binary,
     #tab-fedora:checked ~ .tab-panels #panel-fedora,
+    #tab-android:checked ~ .tab-panels #panel-android,
     #tab-source:checked ~ .tab-panels #panel-source {
       display: block;
     }
@@ -222,6 +224,7 @@
       border-radius: 0;
       padding: 0;
       margin: 0;
+      overflow-x: auto;
     }
 
     .install-note {
@@ -235,6 +238,70 @@
       content: '# ';
       color: var(--border);
     }
+
+    /* Inner sub-tabs (used inside Fedora panel) */
+    .sub-tabs input[type="radio"] { display: none; }
+
+    .sub-tab-labels {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+
+    .sub-tab-labels label {
+      padding: 6px 14px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: ui-monospace, monospace;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    #ftab-root:checked     ~ .sub-tab-labels label[for="ftab-root"],
+    #ftab-rootless:checked ~ .sub-tab-labels label[for="ftab-rootless"],
+    #ftab-gui:checked      ~ .sub-tab-labels label[for="ftab-gui"],
+    #btab-amd64:checked    ~ .sub-tab-labels label[for="btab-amd64"],
+    #btab-arm64:checked    ~ .sub-tab-labels label[for="btab-arm64"] {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+
+    .sub-tab-panel { display: none; padding: 16px 0 4px; }
+
+    #ftab-root:checked     ~ .sub-tab-panels #fpanel-root,
+    #ftab-rootless:checked ~ .sub-tab-panels #fpanel-rootless,
+    #ftab-gui:checked      ~ .sub-tab-panels #fpanel-gui,
+    #btab-amd64:checked    ~ .sub-tab-panels #bpanel-amd64,
+    #btab-arm64:checked    ~ .sub-tab-panels #bpanel-arm64 {
+      display: block;
+    }
+
+    .copr-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .copr-status img { display: block; border-radius: 3px; }
+
+    /* Footer */
+    footer {
+      padding: 24px 0;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    footer a:hover { color: var(--text); }
 
     @media (max-width: 480px) {
       .hero { padding: 56px 0 48px; }
@@ -257,7 +324,7 @@
 
       <div class="hero-badge">
         <span class="dot">●</span>
-        v1.0.0-8 · SAML working · GTK4 GUI · static binaries · FC43 arm64/amd64/ppc64le
+        v1.0.0-10 · SAML working · GTK4 GUI · FC43/44/rawhide · amd64/arm64/ppc64le
       </div>
 
       <div class="hero-cta">
@@ -275,11 +342,13 @@
       <div class="tabs">
         <input type="radio" name="install-tab" id="tab-binary" checked>
         <input type="radio" name="install-tab" id="tab-fedora">
+        <input type="radio" name="install-tab" id="tab-android">
         <input type="radio" name="install-tab" id="tab-source">
 
         <div class="tab-labels">
-          <label for="tab-binary">Binary</label>
+          <label for="tab-binary">Static binary</label>
           <label for="tab-fedora">Fedora / RHEL</label>
+          <label for="tab-android">Android</label>
           <label for="tab-source">From source</label>
         </div>
 
@@ -288,21 +357,36 @@
           <div class="tab-panel" id="panel-binary">
             <div class="install-modes">
 
-              <div class="install-mode">
-                <div class="install-mode-label"><span>amd64</span></div>
-                <pre><code>curl -LO https://github.com/openlawsvpn/openlawsvpn/releases/latest/download/openlawsvpn-cli-linux-amd64
+              <div class="sub-tabs">
+                <input type="radio" name="binary-tab" id="btab-amd64" checked>
+                <input type="radio" name="binary-tab" id="btab-arm64">
+
+                <div class="sub-tab-labels">
+                  <label for="btab-amd64">amd64</label>
+                  <label for="btab-arm64">arm64</label>
+                </div>
+
+                <div class="sub-tab-panels">
+
+                  <div class="sub-tab-panel" id="bpanel-amd64">
+                    <pre><code>BASE=https://github.com/openlawsvpn/openlawsvpn/releases/latest/download
+curl -LO $BASE/openlawsvpn-cli-linux-amd64
 chmod +x openlawsvpn-cli-linux-amd64
 sudo mv openlawsvpn-cli-linux-amd64 /usr/local/bin/openlawsvpn-cli</code></pre>
-              </div>
+                  </div>
 
-              <div class="install-mode">
-                <div class="install-mode-label"><span>arm64</span></div>
-                <pre><code>curl -LO https://github.com/openlawsvpn/openlawsvpn/releases/latest/download/openlawsvpn-cli-linux-arm64
+                  <div class="sub-tab-panel" id="bpanel-arm64">
+                    <pre><code>BASE=https://github.com/openlawsvpn/openlawsvpn/releases/latest/download
+curl -LO $BASE/openlawsvpn-cli-linux-arm64
 chmod +x openlawsvpn-cli-linux-arm64
 sudo mv openlawsvpn-cli-linux-arm64 /usr/local/bin/openlawsvpn-cli</code></pre>
+                  </div>
+
+                </div>
               </div>
 
-              <p class="install-note">static binary runs in standalone (root) mode only — requires root or CAP_NET_ADMIN+CAP_NET_RAW; rootless mode is available via the Fedora / RHEL packages</p>
+              <p class="install-note">CLI only — statically linked, no dependencies; standalone mode (requires root or CAP_NET_ADMIN+CAP_NET_RAW)</p>
+              <p class="install-note">for ppc64le or rootless D-Bus mode, use the Fedora / RHEL tab</p>
 
             </div>
           </div>
@@ -310,27 +394,61 @@ sudo mv openlawsvpn-cli-linux-arm64 /usr/local/bin/openlawsvpn-cli</code></pre>
           <div class="tab-panel" id="panel-fedora">
             <div class="install-modes">
 
-              <div class="install-mode">
-                <div class="install-mode-label"><span>CLI (as root)</span></div>
-                <pre><code>dnf copr enable vorona/openlawsvpn -y
+              <div class="sub-tabs">
+                <input type="radio" name="fedora-tab" id="ftab-root" checked>
+                <input type="radio" name="fedora-tab" id="ftab-rootless">
+                <input type="radio" name="fedora-tab" id="ftab-gui">
+
+                <div class="sub-tab-labels">
+                  <label for="ftab-root">CLI (root)</label>
+                  <label for="ftab-rootless">CLI (rootless)</label>
+                  <label for="ftab-gui">GUI</label>
+                </div>
+
+                <div class="sub-tab-panels">
+
+                  <div class="sub-tab-panel" id="fpanel-root">
+                    <pre><code>dnf copr enable vorona/openlawsvpn -y
 dnf install openlawsvpn-cli -y
 openlawsvpn-cli connect /path/to/client-config.ovpn --standalone</code></pre>
-              </div>
+                    <p class="install-note">standalone mode — requires root or CAP_NET_ADMIN+CAP_NET_RAW</p>
+                  </div>
 
-              <div class="install-mode">
-                <div class="install-mode-label"><span>CLI (rootless)</span></div>
-                <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
+                  <div class="sub-tab-panel" id="fpanel-rootless">
+                    <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
 sudo dnf install openlawsvpn-cli openvpn3 -y
 openlawsvpn-cli connect ~/Downloads/client-config.ovpn</code></pre>
-                <p class="install-note">rootless mode requires openvpn3 and its dependency gdbuspp</p>
-              </div>
+                    <p class="install-note">rootless D-Bus mode — requires openvpn3 and gdbuspp</p>
+                  </div>
 
-              <div class="install-mode">
-                <div class="install-mode-label"><span>GUI</span></div>
-                <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
+                  <div class="sub-tab-panel" id="fpanel-gui">
+                    <pre><code>sudo dnf copr enable vorona/openlawsvpn -y
 sudo dnf install openlawsvpn-gui -y
 openlawsvpn-gui</code></pre>
-                <p class="install-note">GTK4 + libadwaita desktop app; pulls in openlawsvpn-cli automatically</p>
+                    <p class="install-note">GTK4 + libadwaita desktop app — pulls in openlawsvpn-cli automatically</p>
+                  </div>
+
+                </div>
+              </div>
+
+              <div class="copr-status">
+                <a href="https://copr.fedorainfracloud.org/coprs/vorona/openlawsvpn/package/openlawsvpn/">
+                  <img src="https://copr.fedorainfracloud.org/coprs/vorona/openlawsvpn/package/openlawsvpn/status_image/last_build.png" alt="COPR build status">
+                </a>
+                <span>amd64 · arm64 · ppc64le · Fedora 43/44/rawhide</span>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="tab-panel" id="panel-android">
+            <div class="install-modes">
+
+              <div class="install-mode">
+                <div class="install-mode-label"><span>F-Droid</span></div>
+                <pre><code># pending review — F-Droid merge request submitted
+# check back soon or watch the repo for the release announcement</code></pre>
+                <p class="install-note">approval in progress — iOS / macOS planned for a future release</p>
               </div>
 
             </div>
@@ -345,6 +463,15 @@ make linux</code></pre>
       </div>
     </div>
   </section>
+
+<footer>
+  <div class="container">
+    &copy; 2026 openlawsvpn contributors &nbsp;·&nbsp;
+    <a href="https://github.com/openlawsvpn/openlawsvpn">GitHub</a> &nbsp;·&nbsp;
+    <a href="/privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="mailto:security@openlawsvpn.com">security@openlawsvpn.com</a>
+  </div>
+</footer>
 
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0FT1WE72MX"></script>

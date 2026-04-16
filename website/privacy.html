@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy — openlawsvpn</title>
-  <link rel="canonical" href="https://openlawsvpn.com/privacy">
+  <link rel="canonical" href="https://openlawsvpn.com/privacy.html">
   <meta name="description" content="Privacy policy for the openlawsvpn Android app. No data collection, no telemetry, no tracking.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23f78166'>|</text></svg>">
   <style>
@@ -146,7 +146,7 @@
   <div class="container">
 
     <h1>Privacy Policy</h1>
-    <p class="effective">Effective date: April 14, 2026 &nbsp;·&nbsp; Applies to: openlawsvpn Android app</p>
+    <p class="effective">Effective date: April 14, 2026 &nbsp;·&nbsp; Applies to: all openlawsvpn apps and clients</p>
 
     <div class="callout">
       <p><strong>Short version:</strong> The openlawsvpn app does not collect, store, or transmit any personal data to openlawsvpn servers. Your VPN traffic goes directly to your own AWS endpoint.</p>
@@ -158,10 +158,10 @@
     <h2>2. Data stored on your device</h2>
     <p>The following data is stored locally on your device only:</p>
     <ul>
-      <li><strong>VPN profiles (.ovpn files)</strong> — stored in app-private storage, excluded from cloud backups and Android Auto Backup.</li>
+      <li><strong>VPN profiles (.ovpn files)</strong> — stored in app-private storage with restricted permissions (mode 600 on Linux; excluded from Android Auto Backup on Android).</li>
       <li><strong>Connection logs</strong> — held in memory while the app is open; cleared when the process ends. Never written to disk.</li>
     </ul>
-    <p>No data from the app is accessible to other apps or synchronized to any cloud service.</p>
+    <p>No data from any client is accessible to other apps or synchronized to any cloud service.</p>
 
     <h2>3. Data transmitted</h2>
     <p>The only network traffic initiated by the app is:</p>
@@ -174,7 +174,7 @@
     <p>The app does not integrate any third-party analytics, advertising, crash-reporting, or data-processing services.</p>
 
     <h2>5. Permissions</h2>
-    <p>The app requests only the permissions required to operate as a VPN client:</p>
+    <p>Each client requests only the permissions required to operate as a VPN client. On Android:</p>
     <ul>
       <li><strong>INTERNET</strong> — required to establish the VPN tunnel.</li>
       <li><strong>BIND_VPN_SERVICE / VpnService</strong> — required by Android to create a VPN tunnel interface.</li>
@@ -182,7 +182,8 @@
       <li><strong>POST_NOTIFICATIONS</strong> — displays the persistent "Connected" notification and Disconnect action (Android 13+).</li>
       <li><strong>ACCESS_NETWORK_STATE</strong> — detects network loss so the app can update its status when the tunnel drops.</li>
     </ul>
-    <p>No location, contacts, camera, microphone, or storage permissions are requested.</p>
+    <p>On Linux the CLI and GUI require no special permissions beyond the network capabilities needed to create a tunnel interface (CAP_NET_ADMIN / CAP_NET_RAW in rootless D-Bus mode).</p>
+    <p>No location, contacts, camera, microphone, or unnecessary storage permissions are requested on any platform.</p>
 
     <h2>6. Children's privacy</h2>
     <p>The app is not directed at children under 13 and does not knowingly collect information from children.</p>
