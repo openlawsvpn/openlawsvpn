@@ -1,0 +1,10 @@
+--- a/meson.build
++++ b/meson.build
+@@ -91,6 +91,7 @@
+ ])
+
+ add_project_arguments('-Wno-non-virtual-dtor',
++                      '-Wno-array-bounds',
+                       language: 'cpp')
+
+ #

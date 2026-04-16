@@ -45,19 +45,7 @@ openvpn3-src/
 *.tar.gz
 *.tar.xz
 *.tar.xz.asc
-*.patch
 *.gpg
-*.spec
-!openlawsvpn.spec
-!openvpn3.spec
 
 # Stakpak session files
 .stakpak/session*
-
-# Android PoC — Gradle/build artifacts
-android/poc/.gradle/
-android/poc/build/
-android/poc/app/build/
-android/poc/local.properties
-android/poc/*.iml
-android/poc/.idea/

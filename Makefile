@@ -13,7 +13,7 @@ CMAKE_INSTALL_PREFIX ?= $(shell pwd)/build
 
 OPENVPN3_LINUX_VERSION ?= v27
 
-OPENVPN3_RPM_SPEC := docs/openvpn3.spec
+OPENVPN3_RPM_SPEC := provision/spec/openvpn3/openvpn3.spec
 OPENVPN3_RPM_VERSION := $(shell rpmspec --srpm -q --qf "%{Version}-%{Release}" ${OPENVPN3_RPM_SPEC})
 
 # Detect fast linker (mold is fastest, then lld)
@@ -100,8 +100,8 @@ linux-rpm-mock: linux-srpm
 
 openvpn3-rpm:
 	mkdir -p $(PROJECTTMPDIR)
-	spectool --get-files --directory $(PROJECTTMPDIR) docs/openvpn3.spec
-	rpkg srpm --outdir $(PROJECTTMPDIR) --spec docs/openvpn3.spec
+	spectool --get-files --directory $(PROJECTTMPDIR) $(OPENVPN3_RPM_SPEC)
+	rpkg srpm --outdir $(PROJECTTMPDIR) --spec $(OPENVPN3_RPM_SPEC)
 	mock --no-clean -r fedora-$(FEDORA_VERSION)-x86_64 \
         --addrepo=https://download.copr.fedorainfracloud.org/results/vorona/openlawsvpn/fedora-$(FEDORA_VERSION)-x86_64 \
 		$(PROJECTTMPDIR)/openvpn3-$(OPENVPN3_RPM_VERSION).src.rpm

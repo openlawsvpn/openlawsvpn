@@ -14,7 +14,7 @@
 
 Name:           openvpn3
 Version:        27
-Release:        1%{?releasetag}%{?dist}
+Release:        2%{?releasetag}%{?dist}
 Summary:        OpenVPN 3 - TLS based VPN
 
 License:        AGPL-3.0-only
@@ -23,7 +23,10 @@ Source0:        https://swupdate.openvpn.net/community/releases/openvpn3-linux-%
 Source1:        https://swupdate.openvpn.net/community/releases/openvpn3-linux-%{version}%{?versiontag}.tar.xz.asc
 Source2:        https://gitlab.com/dazo/copr-openvpn3/-/raw/master/gpgkey-F554A3687412CFFEBDEFE0A312F5F7B42F2B01E7.gpg
 Patch0:         https://gitlab.com/dazo/copr-openvpn3/-/raw/master/fedora-crypto-policy-compliance.patch
+# Source100: local patches bundled via git_pack (gcc-16-array-bounds.patch etc.)
+Source100:      {{{ git_pack path="provision/spec/openvpn3" }}}
 Vendor:         OpenVPN Inc
+
 
 # Code is not buildable on 32-bit architectures
 ExcludeArch:    armv7hl i686
@@ -156,9 +159,13 @@ when SELinux is active.
 %prep
 gpgv2 --quiet --keyring %{SOURCE2} %{SOURCE1} %{SOURCE0}
 %autosetup -c -N
+tar -xf %{SOURCE100}
 
 pushd %{name}-linux-%{version}%{?versiontag}
-%autopatch -p1
+%patch 0 -p1
+%if 0%{?fedora} > 43
+patch -p1 < ../openlawsvpn-provision-spec-openvpn3/gcc-16-array-bounds.patch
+%endif
 popd
 
 %build
@@ -393,6 +400,9 @@ exit 0
 
 
 %changelog
+* Thu Apr 16 2026 openlawsvpn contributors - 27-2
+- Fix GCC-16 false-positive -Werror=array-bounds in openvpn3-core unicode-impl.hpp
+
 * Tue Mar 3 2026  David Sommerseth <dazo@eurephia.org> - 27-1
 - Release of OpenVPN 3 Linux v27
 - Adds a new openvpn3-desktop-session-watcher notification tool
