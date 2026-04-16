@@ -7,7 +7,10 @@ fn main() {
     println!("cargo:rerun-if-changed=../linux/include/libopenlawsvpn_ffi.h");
     println!("cargo:rerun-if-changed=../linux/src/libopenlawsvpn_ffi.cpp");
 
-    // Search path: locally built library first, then system
+    // Search path: env override first (set by RPM build), then local build, then system default
+    if let Ok(lib_dir) = std::env::var("OPENLAWSVPN_LIB_DIR") {
+        println!("cargo:rustc-link-search=native={}", lib_dir);
+    }
     println!("cargo:rustc-link-search=native=../build/lib");
 
     // Generate FFI bindings from the C extern "C" header

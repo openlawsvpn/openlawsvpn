@@ -3,7 +3,7 @@
 # See LICENSE and LICENSE_USAGE_EXCEPTION for terms.
 Name:           openlawsvpn
 Version:        1.0.0
-Release:        6%{?dist}
+Release:        8%{?dist}
 Summary:        AWS Client VPN client with SAML/SSO support
 
 License:        LGPL-2.1-or-later
@@ -18,6 +18,10 @@ BuildRequires:  lz4-devel
 BuildRequires:  asio-devel
 BuildRequires:  glib2-devel
 BuildRequires:  chrpath
+BuildRequires:  cargo-rpm-macros
+BuildRequires:  gtk4-devel
+BuildRequires:  libadwaita-devel
+BuildRequires:  clang-devel
 
 %description
 openlawsvpn is a specialized OpenVPN 3 client for Linux that handles SAML
@@ -30,25 +34,24 @@ Summary:        Command line interface for openlawsvpn
 %description cli
 Command line interface and shared library for openlawsvpn.
 
-# GUI sub-package — GTK4 + libadwaita (Rust).
-# Not yet built; placeholder for when gui-gtk/ is implemented (Phase 7).
-# To enable: add BuildRequires for gtk4-devel, libadwaita-devel, cargo
-# and uncomment the gui build/install sections below.
-#
-# package gui
-# Summary:        Graphical user interface for openlawsvpn
-# Requires:       openlawsvpn-cli
-# Requires:       gtk4
-# Requires:       libadwaita
-#
-# description gui
-# Native GTK4 + libadwaita desktop GUI for openlawsvpn.
-# Mirrors the Android app: profile list, connection states, live log, system tray.
+%package gui
+Summary:        Graphical user interface for openlawsvpn
+Requires:       openlawsvpn-cli
+Requires:       gtk4
+Requires:       libadwaita
+
+%description gui
+Native GTK4 + libadwaita desktop GUI for openlawsvpn.
+Profile management, SAML/SSO login, live connection log.
 
 %prep
 {{{ git_repo_setup_macro }}}
 mkdir -p openvpn3-core
 tar -xf %{SOURCE1} -C openvpn3-core --strip-components=1
+cd gui-gtk && %cargo_prep && cd ..
+
+%generate_buildrequires
+cd gui-gtk && %cargo_generate_buildrequires && cd ..
 
 %build
 cd linux
@@ -56,25 +59,30 @@ cd linux
 %cmake_build
 cd ..
 
-# GUI build (uncomment when gui-gtk/ exists):
-# cargo build --release --manifest-path gui-gtk/Cargo.toml
+LIB_DIR=$(realpath linux/redhat-linux-build)
+sed -i "/^\[env\]/a OPENLAWSVPN_LIB_DIR = \"$LIB_DIR\"" gui-gtk/.cargo/config.toml
+cd gui-gtk && %cargo_build && cd ..
 
 %install
 cd linux
 %cmake_install
 cd ..
 
-# GUI install (uncomment when gui-gtk/ exists):
-# install -Dm755 gui-gtk/target/release/openlawsvpn-gui %{buildroot}%{_bindir}/openlawsvpn-gui
+cd gui-gtk && %cargo_install && cd ..
 
 %files cli
 %{_bindir}/openlawsvpn-cli
 %{_libdir}/libopenlawsvpn.so
 
-# files gui
-# /usr/bin/openlawsvpn-gui
+%files gui
+%{_bindir}/openlawsvpn-gui
 
 %changelog
+* Thu Apr 16 2026 openlawsvpn contributors - 1.0.0-8
+- Switch GUI build to cargo-rpm-macros; upgrade to gtk4 0.10 / libadwaita 0.8
+- Remove vendored Rust dependencies (use Fedora system registry)
+* Wed Apr 15 2026 openlawsvpn contributors - 1.0.0-7
+- Enable GTK4 + libadwaita GUI sub-package (openlawsvpn-gui)
 * Wed Apr 15 2026 openlawsvpn contributors - 1.0.0-6
 - Remove Flutter GUI dependency; GUI now GTK4+libadwaita+Rust (Phase 7, not yet built)
 * Fri Mar 27 2026 Anatolii Vorona <vorona.tolik@gmail.com> - 1.0.0-5
