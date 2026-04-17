@@ -194,7 +194,7 @@
     .install-modes {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 12px;
       padding: 20px;
       background: var(--code-bg);
       border: 1px solid var(--border);
@@ -263,7 +263,9 @@
     #ftab-rootless:checked ~ .sub-tab-labels label[for="ftab-rootless"],
     #ftab-gui:checked      ~ .sub-tab-labels label[for="ftab-gui"],
     #btab-amd64:checked    ~ .sub-tab-labels label[for="btab-amd64"],
-    #btab-arm64:checked    ~ .sub-tab-labels label[for="btab-arm64"] {
+    #btab-arm64:checked    ~ .sub-tab-labels label[for="btab-arm64"],
+    #atab-fdroid:checked   ~ .sub-tab-labels label[for="atab-fdroid"],
+    #atab-apk:checked      ~ .sub-tab-labels label[for="atab-apk"] {
       color: var(--text);
       border-bottom-color: var(--accent);
     }
@@ -274,7 +276,9 @@
     #ftab-rootless:checked ~ .sub-tab-panels #fpanel-rootless,
     #ftab-gui:checked      ~ .sub-tab-panels #fpanel-gui,
     #btab-amd64:checked    ~ .sub-tab-panels #bpanel-amd64,
-    #btab-arm64:checked    ~ .sub-tab-panels #bpanel-arm64 {
+    #btab-arm64:checked    ~ .sub-tab-panels #bpanel-arm64,
+    #atab-fdroid:checked   ~ .sub-tab-panels #apanel-fdroid,
+    #atab-apk:checked      ~ .sub-tab-panels #apanel-apk {
       display: block;
     }
 
@@ -304,7 +308,7 @@
     footer a:hover { color: var(--text); }
 
     @media (max-width: 480px) {
-      .hero { padding: 56px 0 48px; }
+      .hero { padding: 28px 0 20px; }
       .wordmark { font-size: 34px; }
       .hero-tagline { font-size: 17px; }
       .tab-labels label { padding: 8px 12px; }
@@ -444,12 +448,34 @@ openlawsvpn-gui</code></pre>
           <div class="tab-panel" id="panel-android">
             <div class="install-modes">
 
-              <div class="install-mode">
-                <div class="install-mode-label"><span>F-Droid</span></div>
-                <pre><code># pending review — F-Droid merge request submitted
-# check back soon or watch the repo for the release announcement</code></pre>
-                <p class="install-note">approval in progress — iOS / macOS planned for a future release</p>
+              <div class="sub-tabs">
+                <input type="radio" name="android-tab" id="atab-fdroid" checked>
+                <input type="radio" name="android-tab" id="atab-apk">
+
+                <div class="sub-tab-labels">
+                  <label for="atab-fdroid">F-Droid</label>
+                  <label for="atab-apk">APK (dev build)</label>
+                </div>
+
+                <div class="sub-tab-panels">
+
+                  <div class="sub-tab-panel" id="apanel-fdroid">
+                    <pre><code># merge request submitted — awaiting F-Droid review
+# watch the repo for the release announcement</code></pre>
+                    <p class="install-note">F-Droid listing pending approval &nbsp;·&nbsp; <a href="https://github.com/openlawsvpn/openlawsvpn-android" style="color:var(--blue)">Android repo →</a></p>
+                  </div>
+
+                  <div class="sub-tab-panel" id="apanel-apk">
+                    <pre><code># APK artifacts require a free GitHub account to download
+# sign in at github.com, then open the link below</code></pre>
+                    <p class="install-note"><a href="https://github.com/openlawsvpn/openlawsvpn-android/actions/runs/24481773113" style="color:var(--blue)">Latest CI build (GitHub Actions) →</a></p>
+                    <p class="install-note">download the <code style="font-size:12px">apk</code> artifact from the run page after signing in</p>
+                  </div>
+
+                </div>
               </div>
+
+              <p class="install-note">iOS / macOS planned for a future release</p>
 
             </div>
           </div>
