@@ -1,83 +1,120 @@
 # openlawsvpn — AWS Client VPN for Linux
 
-A specialized OpenVPN 3 based client for AWS Client VPN endpoints with native SAML authentication support. It provides both a modern Flutter GUI and a command-line interface.
+A specialized OpenVPN 3 client for AWS Client VPN endpoints with native SAML/SSO authentication. Supports Okta, Azure AD, Google Workspace, and any SAML 2.0 IdP.
 
 ## Key Features
 
-- **Native SAML Support**: Automatically handles the "AWS Dance" (CRV1 protocol) by launching a browser and capturing tokens on port 35001.
-- **Modern GUI**: Built with Flutter and Material 3 for a smooth Linux desktop experience.
-- **Unprivileged Operation**: Integrates with `openvpn3-linux` D-Bus services to run without root/sudo.
-- **Log Management**: Real-time log console with automatic filtering of binary/SSL garbage.
-- **Dual Modes**: Supports both D-Bus (recommended) and Direct (standalone) connection modes.
+- **Native SAML support** — handles the AWS CRV1 protocol: opens a browser, captures the token, completes the handshake automatically.
+- **GTK4 + libadwaita GUI** — native Linux desktop app with system tray (StatusNotifierItem), profile management, and live connection log.
+- **Rootless operation** — integrates with `openvpn3-linux` D-Bus services; no root or `sudo` required.
+- **Standalone mode** — fully static CLI binary, no dependencies; runs with root or `CAP_NET_ADMIN`+`CAP_NET_RAW`.
+- **Headless / CI-friendly** — CLI works on servers and in pipelines with no display.
 
-## Installation & Build
+## Install
 
-The project uses a unified Makefile to build both the C++ core and the Flutter GUI.
+### Fedora / RHEL (COPR) — amd64 · arm64 · ppc64le · FC43/44/rawhide
+
+```bash
+# CLI (rootless D-Bus mode)
+sudo dnf copr enable vorona/openlawsvpn -y
+sudo dnf install openlawsvpn-cli openvpn3 -y
+
+# GTK4 GUI
+sudo dnf install openlawsvpn-gui -y
+```
+
+### Static binary (amd64 / arm64)
+
+Pre-built static CLI binaries are attached to each [GitHub Release](https://github.com/openlawsvpn/openlawsvpn/releases):
+
+```bash
+BASE=https://github.com/openlawsvpn/openlawsvpn/releases/latest/download
+curl -LO $BASE/openlawsvpn-cli-linux-amd64   # or openlawsvpn-cli-linux-arm64
+chmod +x openlawsvpn-cli-linux-amd64
+sudo mv openlawsvpn-cli-linux-amd64 /usr/local/bin/openlawsvpn-cli
+```
+
+Static binaries run in standalone mode only (requires root or `CAP_NET_ADMIN`+`CAP_NET_RAW`).
+For ppc64le or rootless D-Bus mode use the COPR packages.
+
+## Build from source
 
 ### Requirements
-- **Build Tools**: `cmake`, `ninja-build`, `gcc-c++`, `make`, `git`
-- **Libraries**: `openssl-devel`, `lz4-devel`, `glib2-devel`, `gtk3-devel`, `libcanberra-devel`
-- **SDK**: `flutter` (for the GUI)
-- **Runtime (rootless mode)**: `openvpn3` from [Fedora COPR](https://copr.fedorainfracloud.org/coprs/vorona/openlawsvpn/)
 
-### Quick Build
+- **C++ core**: `cmake`, `ninja-build`, `gcc-c++`, `openssl-devel`, `lz4-devel`, `glib2-devel`
+- **GUI**: `gtk4-devel`, `libadwaita-devel`, `cargo`, `rust-zbus+tokio-devel`
+- **Rootless runtime**: `openvpn3` + `gdbuspp` from COPR
+
+### Build
+
 ```bash
-git clone https://github.com/openlawsvpn/openlawsvpn
-make linux          # dynamic CLI + shared lib (D-Bus mode, requires glib2/gio)
+git clone --recurse-submodules https://github.com/openlawsvpn/openlawsvpn
+make linux          # C++ CLI + shared lib (D-Bus mode)
+make gui            # GTK4 GUI (requires make linux first)
 make linux-static   # fully static CLI via Alpine container (requires podman or docker)
 ```
 
-The build artifacts will be available in:
+Artifacts:
 - CLI (dynamic): `build/bin/openlawsvpn-cli`
 - CLI (static):  `build/linux-static/openlawsvpn-cli-static`
-- GUI: `build/gui/openlawsvpn-gui`
-
-Pre-built static binaries for `amd64` and `arm64` are attached to each
-[GitHub Release](https://github.com/openlawsvpn/openlawsvpn/releases).
+- GUI:           `build/gui/openlawsvpn-gui`
 
 ## Usage
 
-### GUI (Recommended)
-Launch the GUI application:
+### GUI
+
 ```bash
-./build/gui/openlawsvpn-gui
+openlawsvpn-gui
+# or from build directory:
+LD_LIBRARY_PATH=build/lib build/gui/openlawsvpn-gui
 ```
-1. Select your `.ovpn` profile.
-2. Click **Connect**.
-3. A browser will open for SAML authentication.
-4. Once authenticated, the VPN will connect automatically.
+
+1. Add a `.ovpn` profile in the Connect tab.
+2. Click **Connect** — a browser opens for SAML login.
+3. After authentication the tunnel comes up automatically.
 
 ### CLI
-Connect using the command-line tool:
+
 ```bash
-./build/bin/openlawsvpn-cli connect /path/to/your/profile.ovpn
+# Rootless (D-Bus mode — requires openvpn3 running)
+openlawsvpn-cli connect ~/Downloads/client-config.ovpn
+
+# Standalone (root / static binary)
+sudo openlawsvpn-cli connect /path/to/client-config.ovpn --standalone
 ```
 
 ## Project Structure
-- `gui/`: Flutter-based graphical interface.
-- `linux/`: C++ core implementation and D-Bus client.
-- `docs/`: Technical specifications and packaging files.
-- `PLAN.md`: Detailed implementation status and architecture overview.
+
+```
+linux/          C++ core, D-Bus client, shared lib, static CLI
+gui-gtk/        GTK4 + libadwaita + Rust desktop GUI
+provision/
+  spec/
+    openvpn3/   openvpn3 RPM spec (with FC44/GCC-16 patch)
+openvpn3-core/  openvpn3-core submodule (header-only library)
+website/        openlawsvpn.com static site
+```
+
+## Android
+
+An Android app is pending [F-Droid](https://f-droid.org/) review.
+See the [openlawsvpn-android](https://github.com/openlawsvpn/openlawsvpn-android) repo.
+iOS / macOS support is planned for a future release.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTORS.md](CONTRIBUTORS.md) for details on our Contributor License Agreement (CLA) and how to get started.
+Contributions are welcome. See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the CLA and getting-started guide.
 
 ## Security
 
-If you discover a security vulnerability, please see our [Security Policy](SECURITY.md) for responsible disclosure instructions.
+See [SECURITY.md](SECURITY.md) for responsible disclosure instructions or email [security@openlawsvpn.com](mailto:security@openlawsvpn.com).
 
 ## License
 
-openlawsvpn is licensed under the **GNU Lesser General Public License v2.1
-or later** ([LGPL-2.1-or-later](LICENSE)).
+openlawsvpn is licensed under the **GNU Lesser General Public License v2.1 or later** ([LGPL-2.1-or-later](LICENSE)).
 
-You may use this software freely in any environment — including cloud VMs,
-containers, CI/CD pipelines, and automation scripts — without any
-source-disclosure obligations on your own code. See
-[LICENSE_USAGE_EXCEPTION](LICENSE_USAGE_EXCEPTION) for the explicit grant.
+You may use this software freely in any environment — cloud VMs, containers, CI/CD pipelines, automation scripts — without source-disclosure obligations on your own code. See [LICENSE_USAGE_EXCEPTION](LICENSE_USAGE_EXCEPTION) for the explicit grant.
 
 Modifications to openlawsvpn itself must be released under LGPL-2.1-or-later.
 
-Commercial licenses (no copyleft obligations, enterprise support SLA) are
-available for organizations that need them. Contact the maintainers.
+Commercial licenses (no copyleft obligations, enterprise support SLA) are available. Contact the maintainers.
